@@ -403,8 +403,8 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
   import {
-    getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously,
-    onAuthStateChanged, signOut, linkWithPopup
+    getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signInAnonymously,
+    onAuthStateChanged, signOut, linkWithRedirect
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
   import {
     getFirestore, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
@@ -425,9 +425,13 @@
   const db = getFirestore(fbApp);
 
   window.__fb = {
-    auth, db, GoogleAuthProvider, signInWithPopup, signInAnonymously,
-    signOut, linkWithPopup, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
+    auth, db, GoogleAuthProvider, signInWithRedirect, signInAnonymously,
+    signOut, linkWithRedirect, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
   };
+
+  getRedirectResult(auth).catch(function(err){
+    if(window.onFirebaseAuthError) window.onFirebaseAuthError(err);
+  });
 
   onAuthStateChanged(auth, function(user){
     if(window.onFirebaseAuthChange) window.onFirebaseAuthChange(user);
@@ -1250,10 +1254,7 @@ function toggleTheme(){
 function signInWithGoogle(){
   state.authError = null;
   var provider = new window.__fb.GoogleAuthProvider();
-  window.__fb.signInWithPopup(window.__fb.auth, provider).catch(function(err){
-    state.authError = err.message || 'Sign-in failed. Please try again.';
-    render();
-  });
+  window.__fb.signInWithRedirect(window.__fb.auth, provider);
 }
 
 function continueAsGuest(){
@@ -1272,13 +1273,7 @@ function upgradeToGoogle(){
   if(!state.user || !state.user.isAnonymous) return;
   state.authError = null;
   var provider = new window.__fb.GoogleAuthProvider();
-  window.__fb.linkWithPopup(state.user, provider).then(function(result){
-    state.user = result.user;
-    render();
-  }).catch(function(err){
-    state.authError = err.message || 'Could not link Google account.';
-    render();
-  });
+  window.__fb.linkWithRedirect(state.user, provider);
 }
 
 function renderAuthLoading(){
@@ -2551,14 +2546,19 @@ render();
 window.onFirebaseAuthChange = function(user){
   state.user = user;
   state.authReady = true;
-  state.authError = null;
   if(user){
+    state.authError = null;
     state.screen = pendingResumeScreen || 'setup';
     pendingResumeScreen = null;
     fetchMatchHistory();
   } else {
     state.screen = 'login';
   }
+  render();
+};
+
+window.onFirebaseAuthError = function(err){
+  state.authError = (err && err.message) ? err.message : 'Sign-in failed. Please try again.';
   render();
 };
 </script>
