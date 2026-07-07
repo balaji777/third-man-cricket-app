@@ -205,10 +205,6 @@
   }
   .sb-target{margin-top:8px;font-size:12px;color:var(--stat-dark-muted);}
   .sb-target b{color:var(--stat-dark-text);}
-  .freehit-banner{
-    margin-top:8px;background:var(--red);color:#fff;font-family:'Oswald',sans-serif;
-    font-weight:700;letter-spacing:0.1em;font-size:13px;padding:5px 0;border-radius:6px;
-  }
   .pp-banner{
     margin-top:8px;background:var(--teal);color:#fff;font-family:'Oswald',sans-serif;
     font-weight:700;letter-spacing:0.08em;font-size:12px;padding:5px 0;border-radius:6px;
@@ -263,7 +259,7 @@
   .runbtn:active{transform:scale(0.96);}
   .runbtn.four{background:var(--amber);border-color:var(--amber);color:#2b1c05;}
   .runbtn.six{background:var(--red);border-color:var(--red);color:#fff;}
-  .extras-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;}
+  .extras-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
   .extrabtn{
     background:transparent;border:1px dashed var(--line);color:var(--chalk);
     border-radius:8px;padding:10px 2px;text-align:center;font-size:11px;cursor:pointer;
@@ -287,7 +283,7 @@
   @media (max-width:360px){
     .screen{padding:16px 14px;}
     .sb-score{font-size:36px;}
-    .extras-row{grid-template-columns:repeat(3,1fr);}
+    .extras-row{grid-template-columns:repeat(2,1fr);}
     .extrabtn{font-size:10px;padding:9px 2px;}
     .runbtn{font-size:17px;padding:12px 0;}
     .util-row .btn{min-width:100%;}
@@ -404,6 +400,39 @@
     #print-area .rpt-note{font-size:11px;margin:4px 0;}
   }
 </style>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously,
+    onAuthStateChanged, signOut, linkWithPopup
+  } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
+  import {
+    getFirestore, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
+  } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBpddbbs4hzry1H2qOb3K9K3RQdgGnjdAk",
+    authDomain: "third-man-cricket.firebaseapp.com",
+    projectId: "third-man-cricket",
+    storageBucket: "third-man-cricket.firebasestorage.app",
+    messagingSenderId: "45655423481",
+    appId: "1:45655423481:web:e4490a79ba7ac3941fa528",
+    measurementId: "G-DCG65TMJGG"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const auth = getAuth(fbApp);
+  const db = getFirestore(fbApp);
+
+  window.__fb = {
+    auth, db, GoogleAuthProvider, signInWithPopup, signInAnonymously,
+    signOut, linkWithPopup, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
+  };
+
+  onAuthStateChanged(auth, function(user){
+    if(window.onFirebaseAuthChange) window.onFirebaseAuthChange(user);
+  });
+</script>
 </head>
 <body>
 <div id="app"></div>
@@ -426,10 +455,12 @@ function freshMatch(){
     extraPopup:null,
     showOverHistory:false, theme:'dark', manOfMatch:null, toastMessage:null,
     dismissalPopup:null,
-    freeHitAsk:false,
     powerplayOvers:6,
     resetConfirmOpen:false,
     superOver:null,
+    soNamesPopup:false, soExtraPopup:null, superOverTiedFinal:false,
+    matchRecorded:false, previousScreen:null,
+    user:null, authReady:false, authError:null, matchHistoryCache:null,
     showInningsCard:{1:false, 2:false}
   };
 }
@@ -453,27 +484,36 @@ function freshInnings(battingName, bowlingName){
     wicketLog:[],
     partnershipStartRuns:0, partnershipStartBalls:0,
     extras:{wd:0, nb:0, b:0, lb:0},
-    freeHitNext:false
+    startTime:null, endTime:null
   };
 }
 
 function render(){
   var app = document.getElementById('app');
   app.className = state.theme==='light' ? 'light' : '';
+  if(state.screen==='result') recordMatchToHistory();
   if(state.screen==='setup') app.innerHTML = renderSetup();
   else if(state.screen==='scoring') app.innerHTML = renderScoring();
   else if(state.screen==='break') app.innerHTML = renderBreak();
   else if(state.screen==='result') app.innerHTML = renderResult();
   else if(state.screen==='superOverIntro') app.innerHTML = renderSuperOverIntro();
   else if(state.screen==='superOverScoring') app.innerHTML = renderSuperOverScoring();
+  else if(state.screen==='superOverTiedAgain') app.innerHTML = renderSuperOverTiedAgain();
+  else if(state.screen==='leaderboard') app.innerHTML = renderLeaderboard();
+  else if(state.screen==='authLoading') app.innerHTML = renderAuthLoading();
+  else if(state.screen==='login') app.innerHTML = renderLogin();
   saveMatchState();
 }
 
 function saveMatchState(){
   try{
-    localStorage.setItem('creaseMatchState', JSON.stringify(state));
+    var toSave = Object.assign({}, state);
+    delete toSave.user;
+    localStorage.setItem('creaseMatchState', JSON.stringify(toSave));
   }catch(e){}
 }
+
+var pendingResumeScreen = null;
 
 function loadMatchState(){
   try{
@@ -485,10 +525,14 @@ function loadMatchState(){
     state.playerPopup = null;
     state.extraPopup = null;
     state.dismissalPopup = null;
-    state.freeHitAsk = false;
     state.tossOpen = false;
     state.toastMessage = null;
     state.resetConfirmOpen = false;
+    state.user = null;
+    state.authReady = false;
+    state.authError = null;
+    state.matchHistoryCache = null;
+    pendingResumeScreen = state.screen;
     return true;
   }catch(e){
     return false;
@@ -506,6 +550,9 @@ function topbar(){
     html += '<div class="theme-toggle" onclick="openResetConfirm()" title="New match">&#8635;</div>';
   }
   html += '<div class="theme-toggle" onclick="toggleTheme()">'+icon+'</div>';
+  if(state.user){
+    html += '<div class="theme-toggle" onclick="signOutUser()" title="Sign out">&#9211;</div>';
+  }
   html += '</div></div>';
   if(state.resetConfirmOpen){
     html += '<div class="toss-overlay"><div class="toss-modal">';
@@ -528,6 +575,13 @@ function renderSetup(){
   var html = topbar();
   html += '<div class="screen">';
   html += '<h2 style="margin-bottom:18px;">New match setup</h2>';
+  html += '<button class="btn btn-secondary btn-small" style="width:100%;margin-bottom:16px;" onclick="openLeaderboard()">View Leaderboard</button>';
+  if(state.user && state.user.isAnonymous){
+    html += '<div class="card" style="margin-bottom:16px;text-align:center;">';
+    html += '<p class="muted" style="margin:0 0 10px;">Playing as guest — sign in to save your stats across devices.</p>';
+    html += '<button class="btn btn-secondary btn-small" style="width:100%;" onclick="upgradeToGoogle()">Sign in with Google</button>';
+    html += '</div>';
+  }
 
   html += '<label>Team A name</label>';
   html += '<input type="text" value="'+escapeHtml(state.teamA)+'" oninput="state.teamA=this.value" placeholder="Team A name">';
@@ -674,6 +728,7 @@ function confirmOpeners(){
   inn.batsmen[0].name = s;
   inn.batsmen[1].name = ns;
   inn.bowlers[0].name = bw;
+  inn.startTime = Date.now();
   state.playerPopup = null;
   state.playerPopupError = null;
   render();
@@ -706,6 +761,7 @@ function undoLastBallAndResume(){
   var keepHistory = inn.history;
   prev.history = keepHistory;
   prev.ended = false;
+  prev.endTime = null;
   state.data[state.inningsNum] = prev;
   state.screen = 'scoring';
   if(state.inningsNum===1){
@@ -718,6 +774,25 @@ function undoLastBallAndResume(){
 
 function oversStr(balls){
   return Math.floor(balls/6) + '.' + (balls%6);
+}
+
+function formatTime12hr(ms){
+  if(!ms) return '';
+  var d = new Date(ms);
+  var h = d.getHours();
+  var m = d.getMinutes();
+  var ampm = h>=12 ? 'PM' : 'AM';
+  h = h%12; if(h===0) h=12;
+  var mStr = m<10 ? '0'+m : ''+m;
+  return h+':'+mStr+' '+ampm;
+}
+
+function formatDuration(startMs, endMs){
+  if(!startMs || !endMs) return '';
+  var mins = Math.round((endMs-startMs)/60000);
+  if(mins<60) return mins+' min';
+  var h = Math.floor(mins/60), m = mins%60;
+  return h+'h '+m+'m';
 }
 
 function rate(runs, balls){
@@ -749,7 +824,6 @@ function addRuns(n){
   bwl.runs += n;
   inn.thisOver.push(String(n));
   if(n%2===1){ swapStrike(inn); }
-  inn.freeHitNext = false;
   var overDone = checkOverEnd(inn);
   afterBall(overDone, false);
 }
@@ -792,10 +866,6 @@ function confirmExtra(n){
     }
     inn.thisOver.push(batRuns>0 ? 'nb'+batRuns : 'nb');
     if(batRuns%2===1){ swapStrike(inn); }
-    state.extraPopup = null;
-    state.freeHitAsk = true;
-    render();
-    return;
   } else if(type==='b'){
     inn.runs += n;
     inn.extras.b += n;
@@ -805,7 +875,6 @@ function confirmExtra(n){
     inn.thisOver.push('b'+n);
     if(n%2===1){ swapStrike(inn); }
     overDone = checkOverEnd(inn);
-    inn.freeHitNext = false;
   } else if(type==='lb'){
     inn.runs += n;
     inn.extras.lb += n;
@@ -815,24 +884,9 @@ function confirmExtra(n){
     inn.thisOver.push('lb'+n);
     if(n%2===1){ swapStrike(inn); }
     overDone = checkOverEnd(inn);
-    inn.freeHitNext = false;
   }
   state.extraPopup = null;
   afterBall(overDone, false);
-}
-
-function answerFreeHit(isFreeHit){
-  var inn = curInnings();
-  inn.freeHitNext = isFreeHit;
-  state.freeHitAsk = false;
-  afterBall(false, false);
-}
-
-function deadBall(){
-  snapshot();
-  var inn = curInnings();
-  inn.thisOver.push('db');
-  render();
 }
 
 function swapStrike(inn){
@@ -920,7 +974,7 @@ function advancePopupQueue(){
 }
 
 function openDismissalPopup(){
-  state.dismissalPopup = {step:'type', type:null};
+  state.dismissalPopup = {step:'type', type:null, catchType:null, runsCompleted:null, endThrown:null, whoOutIdx:null};
   state.playerPopupError = null;
   render();
 }
@@ -931,21 +985,51 @@ function closeDismissalPopup(){
 }
 
 function pickDismissalType(type){
+  var d = state.dismissalPopup;
+  d.type = type;
+  state.playerPopupError = null;
   if(type==='bowled' || type==='lbw'){
     finalizeWicket(type, null);
-  } else {
-    state.dismissalPopup.type = type;
-    state.dismissalPopup.step = 'fielder';
-    state.playerPopupError = null;
+  } else if(type==='stumped'){
+    finalizeWicket('stumped', null);
+  } else if(type==='caught'){
+    d.step = 'catchType';
+    render();
+  } else if(type==='runout'){
+    d.step = 'runoutRuns';
     render();
   }
+}
+
+function pickCatchType(kind){
+  state.dismissalPopup.catchType = kind;
+  state.dismissalPopup.step = 'fielder';
+  render();
+}
+
+function pickRunoutRuns(n){
+  state.dismissalPopup.runsCompleted = n;
+  state.dismissalPopup.step = 'runoutEnd';
+  render();
+}
+
+function pickRunoutEnd(end){
+  state.dismissalPopup.endThrown = end;
+  state.dismissalPopup.step = 'runoutWho';
+  render();
+}
+
+function pickRunoutWho(idx){
+  state.dismissalPopup.whoOutIdx = idx;
+  state.dismissalPopup.step = 'fielder';
+  render();
 }
 
 function confirmDismissalFielder(){
   var type = state.dismissalPopup.type;
   var input = document.getElementById('popFielder');
   var val = input ? input.value.trim() : '';
-  if((type==='caught'||type==='stumped') && val===''){
+  if(type==='caught' && val===''){
     state.playerPopupError = "Please enter the fielder's name.";
     render();
     return;
@@ -953,31 +1037,52 @@ function confirmDismissalFielder(){
   finalizeWicket(type, val || null);
 }
 
-function howOutText(type, bowlerName, fielderName){
+function howOutText(type, bowlerName, fielderName, d){
   if(type==='bowled') return 'b '+bowlerName;
   if(type==='lbw') return 'lbw b '+bowlerName;
-  if(type==='caught') return 'c '+fielderName+' b '+bowlerName;
-  if(type==='stumped') return 'st '+fielderName+' b '+bowlerName;
-  if(type==='runout') return fielderName ? 'run out ('+fielderName+')' : 'run out';
+  if(type==='caught'){
+    var tag = (d && d.catchType==='extraordinary') ? ' (stunning catch!)' : '';
+    return 'c '+fielderName+' b '+bowlerName+tag;
+  }
+  if(type==='stumped') return 'st wk b '+bowlerName;
+  if(type==='runout'){
+    var endLabel = (d && d.endThrown==='striker') ? "striker's end" : "non-striker's end";
+    var runsLabel = (d && d.runsCompleted!=null) ? (d.runsCompleted+' run'+(d.runsCompleted===1?'':'s')+', ') : '';
+    var fielderLabel = fielderName ? ('/'+fielderName) : '';
+    return 'run out ('+runsLabel+endLabel+fielderLabel+')';
+  }
   return 'out';
 }
 
 function finalizeWicket(type, fielderName){
   snapshot();
   var inn = curInnings();
-  var bat = striker(inn);
-  var partner = nonStriker(inn);
+  var d = state.dismissalPopup;
   var bwl = currentBowler(inn);
+
+  var strikerBat = striker(inn);
+  strikerBat.balls += 1;
+  if(type==='runout' && d && d.runsCompleted){
+    inn.runs += d.runsCompleted;
+    strikerBat.runs += d.runsCompleted;
+  }
+
+  var outIdx = inn.strikerIdx;
+  if(type==='runout' && d && d.whoOutIdx!=null){
+    outIdx = d.whoOutIdx;
+  }
+  var bat = inn.batsmen[outIdx];
+  var partnerIdx = (outIdx===inn.strikerIdx) ? inn.nonStrikerIdx : inn.strikerIdx;
+  var partner = inn.batsmen[partnerIdx];
+
   bat.out = true;
-  bat.howOut = howOutText(type, bwl.name, fielderName);
-  bat.balls += 1;
+  bat.howOut = howOutText(type, bwl.name, fielderName, d);
   inn.wickets += 1;
   inn.legalBalls += 1;
   bwl.balls += 1;
   if(type!=='runout'){
     bwl.wickets += 1;
   }
-  inn.freeHitNext = false;
   inn.thisOver.push('W');
   inn.wicketLog.push({
     num: inn.wickets,
@@ -1078,6 +1183,7 @@ function checkInningsEnd(){
   var targetChased = state.inningsNum===2 && state.target!==null && inn.runs >= state.target;
   if(oversDone || allOut || targetChased){
     inn.ended = true;
+    inn.endTime = Date.now();
     if(state.inningsNum===1){
       state.target = inn.runs + 1;
       state.screen = 'break';
@@ -1094,6 +1200,7 @@ function endInningsEarly(){
   snapshot();
   var inn = curInnings();
   inn.ended = true;
+  inn.endTime = Date.now();
   if(state.inningsNum===1){
     state.target = inn.runs + 1;
     state.screen = 'break';
@@ -1118,9 +1225,15 @@ function startSecondInnings(){
 
 function newMatch(){
   var keepTheme = state.theme;
+  var keepUser = state.user;
+  var keepAuthReady = state.authReady;
+  var keepHistoryCache = state.matchHistoryCache;
   clearSavedMatch();
   state = freshMatch();
   state.theme = keepTheme;
+  state.user = keepUser;
+  state.authReady = keepAuthReady;
+  state.matchHistoryCache = keepHistoryCache;
   render();
 }
 
@@ -1132,6 +1245,57 @@ function toggleOverHistory(){
 function toggleTheme(){
   state.theme = state.theme==='dark' ? 'light' : 'dark';
   render();
+}
+
+function signInWithGoogle(){
+  state.authError = null;
+  var provider = new window.__fb.GoogleAuthProvider();
+  window.__fb.signInWithPopup(window.__fb.auth, provider).catch(function(err){
+    state.authError = err.message || 'Sign-in failed. Please try again.';
+    render();
+  });
+}
+
+function continueAsGuest(){
+  state.authError = null;
+  window.__fb.signInAnonymously(window.__fb.auth).catch(function(err){
+    state.authError = err.message || 'Could not continue as guest. Please try again.';
+    render();
+  });
+}
+
+function signOutUser(){
+  window.__fb.signOut(window.__fb.auth);
+}
+
+function upgradeToGoogle(){
+  if(!state.user || !state.user.isAnonymous) return;
+  state.authError = null;
+  var provider = new window.__fb.GoogleAuthProvider();
+  window.__fb.linkWithPopup(state.user, provider).then(function(result){
+    state.user = result.user;
+    render();
+  }).catch(function(err){
+    state.authError = err.message || 'Could not link Google account.';
+    render();
+  });
+}
+
+function renderAuthLoading(){
+  return '<div class="screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;"><p class="muted">Loading…</p></div>';
+}
+
+function renderLogin(){
+  var html = '<div class="screen" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;">';
+  html += '<div style="font-family:\'Oswald\',sans-serif;font-weight:600;letter-spacing:0.06em;font-size:26px;color:var(--amber);text-transform:uppercase;margin-bottom:2px;">Third Man</div>';
+  html += '<div class="muted" style="margin-bottom:36px;">Cricket Scorer</div>';
+  html += '<button class="btn" style="max-width:280px;width:100%;" onclick="signInWithGoogle()">Sign in with Google</button>';
+  html += '<button class="btn btn-secondary" style="max-width:280px;width:100%;margin-top:10px;" onclick="continueAsGuest()">Continue as Guest</button>';
+  if(state.authError){
+    html += '<p style="color:var(--red);font-size:12px;margin-top:16px;max-width:280px;">'+escapeHtml(state.authError)+'</p>';
+  }
+  html += '</div>';
+  return html;
 }
 
 function ballClass(b){
@@ -1155,14 +1319,13 @@ function renderScoring(){
   if(state.inningsNum===2 && state.target!==null){
     var ballsLeft = state.overs*6 - inn.legalBalls;
     var runsNeeded = state.target - inn.runs;
+    var rrr = ballsLeft>0 ? (runsNeeded/(ballsLeft/6)).toFixed(2) : '0.00';
     html += '<div class="sb-target">Need <b>'+Math.max(runsNeeded,0)+'</b> off <b>'+Math.max(ballsLeft,0)+'</b> balls &middot; target <b>'+state.target+'</b></div>';
+    html += '<div class="sb-meta" style="margin-top:4px;"><span>Required RR '+rrr+'</span><span>Current RR '+rate(inn.runs, inn.legalBalls)+'</span></div>';
   }
   if(inPowerplay(inn)){
     var ballsLeftInPP = state.powerplayOvers*6 - inn.legalBalls;
     html += '<div class="pp-banner">POWERPLAY &middot; '+oversStr(ballsLeftInPP)+' overs left</div>';
-  }
-  if(inn.freeHitNext){
-    html += '<div class="freehit-banner">FREE HIT</div>';
   }
   html += '<div class="ticker">';
   if(inn.thisOver.length===0){
@@ -1214,7 +1377,6 @@ function renderScoring(){
   html += '<div class="extrabtn" onclick="openExtraPopup(\'nb\')">No ball</div>';
   html += '<div class="extrabtn" onclick="openExtraPopup(\'b\')">Bye</div>';
   html += '<div class="extrabtn" onclick="openExtraPopup(\'lb\')">Leg bye</div>';
-  html += '<div class="extrabtn" onclick="deadBall()">Dead ball</div>';
   html += '</div>';
 
   html += '<div class="wktbtn" onclick="openDismissalPopup()">Wicket</div>';
@@ -1229,7 +1391,6 @@ function renderScoring(){
   if(state.playerPopup) html += renderPlayerPopup();
   if(state.extraPopup) html += renderExtraPopup();
   if(state.dismissalPopup) html += renderDismissalPopup();
-  if(state.freeHitAsk) html += renderFreeHitPopup();
 
   return html;
 }
@@ -1327,41 +1488,50 @@ function renderDismissalPopup(){
   if(d.step==='type'){
     html += '<h3 style="margin-bottom:6px;">Wicket!</h3>';
     html += '<p class="muted" style="margin:0 0 14px;">How was '+escapeHtml(striker(inn).name)+' out?</p>';
-    var dismissalOptions = inn.freeHitNext
-      ? [['runout','Run Out']]
-      : [['bowled','Bowled'],['caught','Caught'],['lbw','LBW'],['stumped','Stumped'],['runout','Run Out']];
-    if(inn.freeHitNext){
-      html += '<p style="color:var(--amber-ink);font-size:12px;margin:0 0 10px;">Free Hit — only a Run Out counts.</p>';
-    }
     html += '<div class="chip-row" style="justify-content:center;">';
-    dismissalOptions.forEach(function(pair){
+    [['bowled','Bowled'],['caught','Caught'],['lbw','LBW'],['stumped','Stumped'],['runout','Run Out']].forEach(function(pair){
       html += '<div class="chip" onclick="pickDismissalType(\''+pair[0]+'\')">'+pair[1]+'</div>';
     });
     html += '</div>';
-    html += '<button class="btn btn-secondary btn-small" style="margin-top:16px;" onclick="closeDismissalPopup()">Cancel</button>';
+  } else if(d.step==='catchType'){
+    html += '<h3 style="margin-bottom:14px;">What kind of catch?</h3>';
+    html += '<div class="row">';
+    html += '<div class="pick" onclick="pickCatchType(\'normal\')">Normal catch</div>';
+    html += '<div class="pick" onclick="pickCatchType(\'extraordinary\')">Extraordinary catch</div>';
+    html += '</div>';
+  } else if(d.step==='runoutRuns'){
+    html += '<h3 style="margin-bottom:4px;">Run Out</h3>';
+    html += '<p class="muted" style="margin:0 0 14px;">How many runs were completed?</p>';
+    html += '<div class="numpad">';
+    for(var i=0;i<=10;i++){
+      html += '<div class="numbtn" onclick="pickRunoutRuns('+i+')">'+i+'</div>';
+    }
+    html += '</div>';
+  } else if(d.step==='runoutEnd'){
+    html += '<h3 style="margin-bottom:14px;">Which end was the throw?</h3>';
+    html += '<div class="row">';
+    html += '<div class="pick" onclick="pickRunoutEnd(\'striker\')">Striker\'s end</div>';
+    html += '<div class="pick" onclick="pickRunoutEnd(\'nonstriker\')">Non-striker\'s end</div>';
+    html += '</div>';
+  } else if(d.step==='runoutWho'){
+    html += '<h3 style="margin-bottom:14px;">Who was run out?</h3>';
+    html += '<div class="row">';
+    html += '<div class="pick" onclick="pickRunoutWho('+inn.strikerIdx+')">'+escapeHtml(striker(inn).name)+'</div>';
+    html += '<div class="pick" onclick="pickRunoutWho('+inn.nonStrikerIdx+')">'+escapeHtml(nonStriker(inn).name)+'</div>';
+    html += '</div>';
   } else if(d.step==='fielder'){
-    var labelMap = {caught:'Who caught it?', stumped:'Who stumped it?', runout:'Who ran them out? (optional)'};
+    var labelMap = {caught:'Who caught it?', runout:'Who fielded/threw it? (optional)'};
     html += '<h3 style="margin-bottom:14px;">'+labelMap[d.type]+'</h3>';
     html += '<input type="text" id="popFielder" placeholder="Fielder name">';
     html += errorLine();
     html += '<button class="btn" onclick="confirmDismissalFielder()">Confirm</button>';
-    html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;" onclick="closeDismissalPopup()">Cancel</button>';
   }
+  html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;" onclick="closeDismissalPopup()">Cancel</button>';
   html += '</div></div>';
   return html;
 }
 
-function renderFreeHitPopup(){
-  var html = '<div class="toss-overlay"><div class="toss-modal">';
-  html += '<h3 style="margin-bottom:6px;">No ball!</h3>';
-  html += '<p class="muted" style="margin:0 0 16px;">Is this a Free Hit?</p>';
-  html += '<div class="row">';
-  html += '<div class="pick" onclick="answerFreeHit(true)">Yes</div>';
-  html += '<div class="pick" onclick="answerFreeHit(false)">No</div>';
-  html += '</div>';
-  html += '</div></div>';
-  return html;
-}
+
 
 function renderBreak(){
   var inn = state.data[1];
@@ -1384,7 +1554,12 @@ function extrasTotal(inn){
 
 function scorecardBlock(inn, inningsNum){
   var html = '<div class="card">';
-  html += '<h3 style="margin-bottom:10px;">'+escapeHtml(inn.battingName)+' — '+inn.runs+'/'+inn.wickets+' ('+oversStr(inn.legalBalls)+' ov)</h3>';
+  html += '<h3 style="margin-bottom:4px;">'+escapeHtml(inn.battingName)+' — '+inn.runs+'/'+inn.wickets+' ('+oversStr(inn.legalBalls)+' ov)</h3>';
+  if(inn.startTime){
+    html += '<div class="muted" style="font-size:11px;margin:0 0 8px;">Started '+formatTime12hr(inn.startTime);
+    if(inn.endTime) html += ' &middot; finished '+formatTime12hr(inn.endTime)+' &middot; took '+formatDuration(inn.startTime, inn.endTime);
+    html += '</div>';
+  }
   var pp = powerplayScore(inn);
   if(pp){
     html += '<div class="result-line"><span>Powerplay ('+state.powerplayOvers+' ov)</span><span>'+pp.runs+'/'+pp.wkts+' ('+pp.oversDisplay+')</span></div>';
@@ -1430,6 +1605,9 @@ function matchResultText(){
   if(state.superOver && state.superOver.winner){
     return 'Match tied — '+state.superOver.winner+' won the Super Over';
   }
+  if(state.superOverTiedFinal){
+    return 'Match tied — Super Over also finished level';
+  }
   if(inn2.runs >= state.target){
     var wl = state.wicketsLimit - inn2.wickets;
     return inn2.battingName+' won by '+wl+' wicket'+(wl===1?'':'s');
@@ -1455,16 +1633,46 @@ function startSuperOver(){
     target:null,
     winner:null,
     data:{
-      1:{battingName:battingFirstTeam, bowlingName:bowlingFirstTeam, runs:0, wickets:0, balls:0, log:[], history:[]},
+      1:{battingName:battingFirstTeam, bowlingName:bowlingFirstTeam, runs:0, wickets:0, balls:0, log:[],
+         extras:{wd:0,nb:0,b:0,lb:0}, strikerName:'', nonStrikerName:'', bowlerName:'', namesConfirmed:false, history:[]},
       2:null
     }
   };
   state.screen = 'superOverScoring';
+  state.soNamesPopup = true;
+  render();
+}
+
+function acceptTieAsResult(){
+  if(state.superOver && !state.superOver.winner){
+    state.superOverTiedFinal = true;
+  }
+  state.screen = 'result';
+  state.manOfMatch = computeAutoMOTM();
   render();
 }
 
 function curSOInnings(){
   return state.superOver.data[state.superOver.inningsNum];
+}
+
+function confirmSONames(){
+  var inn = curSOInnings();
+  var s = document.getElementById('soStriker').value.trim();
+  var ns = document.getElementById('soNonStriker').value.trim();
+  var bw = document.getElementById('soBowler').value.trim();
+  if(s===''||ns===''||bw===''){
+    state.playerPopupError = 'Please fill in all three names.';
+    render();
+    return;
+  }
+  inn.strikerName = s;
+  inn.nonStrikerName = ns;
+  inn.bowlerName = bw;
+  inn.namesConfirmed = true;
+  state.soNamesPopup = false;
+  state.playerPopupError = null;
+  render();
 }
 
 function soSnapshot(){
@@ -1492,7 +1700,9 @@ function soCheckEnd(){
   if(so.inningsNum===1){
     so.target = inn.runs + 1;
     so.inningsNum = 2;
-    so.data[2] = {battingName: so.bowlingFirstTeam, bowlingName: so.battingFirstTeam, runs:0, wickets:0, balls:0, log:[], history:[]};
+    so.data[2] = {battingName: so.bowlingFirstTeam, bowlingName: so.battingFirstTeam, runs:0, wickets:0, balls:0, log:[],
+                  extras:{wd:0,nb:0,b:0,lb:0}, strikerName:'', nonStrikerName:'', bowlerName:'', namesConfirmed:false, history:[]};
+    state.soNamesPopup = true;
   } else {
     var s1 = so.data[1].runs, s2 = so.data[2].runs;
     if(s2>s1){
@@ -1500,7 +1710,7 @@ function soCheckEnd(){
     } else if(s1>s2){
       so.winner = so.data[1].battingName;
     } else {
-      startSuperOver();
+      state.screen = 'superOverTiedAgain';
       return;
     }
     state.screen = 'result';
@@ -1528,6 +1738,50 @@ function superOverWicket(){
   render();
 }
 
+function openSOExtraPopup(type){
+  state.soExtraPopup = {type:type};
+  render();
+}
+
+function closeSOExtraPopup(){
+  state.soExtraPopup = null;
+  render();
+}
+
+function confirmSOExtra(n){
+  var type = state.soExtraPopup.type;
+  soSnapshot();
+  var inn = curSOInnings();
+  if(type==='wd'){
+    var total = n+1;
+    inn.runs += total;
+    inn.extras.wd += total;
+    inn.log.push(n===0 ? 'wd' : 'wd'+total);
+  } else if(type==='nb'){
+    var total = n+1;
+    inn.runs += total;
+    inn.extras.nb += 1;
+    inn.log.push(n>0 ? 'nb'+n : 'nb');
+  } else if(type==='b'){
+    inn.runs += n;
+    inn.extras.b += n;
+    inn.balls += 1;
+    inn.log.push('b'+n);
+  } else if(type==='lb'){
+    inn.runs += n;
+    inn.extras.lb += n;
+    inn.balls += 1;
+    inn.log.push('lb'+n);
+  }
+  state.soExtraPopup = null;
+  soCheckEnd();
+  render();
+}
+
+function soExtrasTotal(inn){
+  return inn.extras.wd + inn.extras.nb + inn.extras.b + inn.extras.lb;
+}
+
 function renderSuperOverIntro(){
   var html = topbar();
   html += '<div class="screen">';
@@ -1535,9 +1789,25 @@ function renderSuperOverIntro(){
   html += '<div class="card" style="text-align:center;">';
   html += '<p class="muted" style="margin:0 0 10px;">Both teams finished on <b style="color:var(--floodlight);">'+(state.target-1)+'</b> runs.</p>';
   html += '<div class="winner" style="margin:6px 0;">Match Tied</div>';
-  html += '<p class="muted" style="margin:10px 0 0;">A Super Over will decide the winner.</p>';
+  html += '<p class="muted" style="margin:10px 0 0;">Play a Super Over to decide a winner, or leave it as a tie.</p>';
   html += '</div>';
   html += '<button class="btn" onclick="startSuperOver()">Start Super Over</button>';
+  html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;width:100%;" onclick="acceptTieAsResult()">Accept the tie</button>';
+  html += '</div>';
+  return html;
+}
+
+function renderSuperOverTiedAgain(){
+  var so = state.superOver;
+  var html = topbar();
+  html += '<div class="screen">';
+  html += '<h2 style="margin-bottom:10px;">Super Over tied too!</h2>';
+  html += '<div class="card" style="text-align:center;">';
+  html += '<p class="muted" style="margin:0 0 10px;">Both teams scored <b style="color:var(--floodlight);">'+so.data[1].runs+'</b> in the Super Over.</p>';
+  html += '<p class="muted" style="margin:0;">Play another Super Over, or leave it as a tie.</p>';
+  html += '</div>';
+  html += '<button class="btn" onclick="startSuperOver()">Play another Super Over</button>';
+  html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;width:100%;" onclick="acceptTieAsResult()">Accept the tie</button>';
   html += '</div>';
   return html;
 }
@@ -1552,6 +1822,9 @@ function renderSuperOverScoring(){
   html += '<div class="sb-team">'+escapeHtml(inn.battingName)+' batting</div>';
   html += '<div class="sb-score">'+inn.runs+'<small>/'+inn.wickets+'</small></div>';
   html += '<div class="sb-meta"><span>Ball '+inn.balls+' / 6</span></div>';
+  if(inn.namesConfirmed){
+    html += '<div class="sb-meta" style="margin-top:4px;"><span>'+escapeHtml(inn.strikerName)+' &amp; '+escapeHtml(inn.nonStrikerName)+' &middot; '+escapeHtml(inn.bowlerName)+' bowling</span></div>';
+  }
   if(so.inningsNum===2){
     var ballsLeft = 6-inn.balls;
     var runsNeeded = so.target-inn.runs;
@@ -1570,11 +1843,53 @@ function renderSuperOverScoring(){
   [3,4,6].forEach(function(n){ html += '<div class="runbtn '+(n===4?'four':n===6?'six':'')+'" onclick="superOverAddRuns('+n+')">'+n+'</div>'; });
   html += '</div>';
 
+  html += '<div class="section-label">Extras</div>';
+  html += '<div class="extras-row">';
+  html += '<div class="extrabtn" onclick="openSOExtraPopup(\'wd\')">Wide</div>';
+  html += '<div class="extrabtn" onclick="openSOExtraPopup(\'nb\')">No ball</div>';
+  html += '<div class="extrabtn" onclick="openSOExtraPopup(\'b\')">Bye</div>';
+  html += '<div class="extrabtn" onclick="openSOExtraPopup(\'lb\')">Leg bye</div>';
+  html += '</div>';
+
   html += '<div class="wktbtn" onclick="superOverWicket()">Wicket</div>';
   html += '<div class="util-row">';
   html += '<button class="btn btn-secondary btn-small" onclick="superOverUndo()">Undo</button>';
   html += '</div>';
   html += '</div>';
+
+  if(state.soNamesPopup) html += renderSONamesPopup();
+  if(state.soExtraPopup) html += renderSOExtraPopup();
+
+  return html;
+}
+
+function renderSONamesPopup(){
+  var html = '<div class="toss-overlay"><div class="toss-modal">';
+  html += '<h3 style="margin-bottom:14px;">Super Over line-up</h3>';
+  html += '<label style="text-align:left;">Striker</label>';
+  html += '<input type="text" id="soStriker" placeholder="Striker name">';
+  html += '<label style="text-align:left;">Non-striker</label>';
+  html += '<input type="text" id="soNonStriker" placeholder="Non-striker name">';
+  html += '<label style="text-align:left;">Bowler</label>';
+  html += '<input type="text" id="soBowler" placeholder="Bowler name">';
+  html += errorLine();
+  html += '<button class="btn" onclick="confirmSONames()">Start</button>';
+  html += '</div></div>';
+  return html;
+}
+
+function renderSOExtraPopup(){
+  var type = state.soExtraPopup.type;
+  var labels = {wd:'Wide', nb:'No ball', b:'Bye', lb:'Leg bye'};
+  var html = '<div class="toss-overlay"><div class="toss-modal">';
+  html += '<h3 style="margin-bottom:4px;">'+labels[type]+'</h3>';
+  html += '<div class="numpad">';
+  for(var i=0;i<=10;i++){
+    html += '<div class="numbtn" onclick="confirmSOExtra('+i+')">'+i+'</div>';
+  }
+  html += '</div>';
+  html += '<button class="btn btn-secondary btn-small" style="margin-top:14px;" onclick="closeSOExtraPopup()">Cancel</button>';
+  html += '</div></div>';
   return html;
 }
 
@@ -1677,11 +1992,201 @@ function computeAutoMOTM(){
   return best ? best.name : null;
 }
 
+function computeMatchWinner(){
+  if(state.superOver && state.superOver.winner) return state.superOver.winner;
+  if(state.superOverTiedFinal) return null;
+  var inn1 = state.data[1], inn2 = state.data[2];
+  if(inn2.runs >= state.target) return inn2.battingName;
+  if(inn2.runs === state.target-1) return null;
+  return inn1.battingName;
+}
+
+function recordMatchToHistory(){
+  if(state.matchRecorded) return;
+  state.matchRecorded = true;
+  var inn1 = state.data[1], inn2 = state.data[2];
+  function packInnings(inn){
+    return {
+      team: inn.battingName,
+      runs: inn.runs, wickets: inn.wickets, overs: oversStr(inn.legalBalls),
+      batsmen: inn.batsmen.map(function(b){ return {name:b.name, runs:b.runs, balls:b.balls, fours:b.fours, sixes:b.sixes, out:b.out}; }),
+      bowlers: inn.bowlers.map(function(bw){ return {name:bw.name, balls:bw.balls, runs:bw.runs, wickets:bw.wickets, maidens:bw.maidens||0}; })
+    };
+  }
+  var entry = {
+    date: Date.now(),
+    teamA: state.teamA, teamB: state.teamB,
+    resultText: matchResultText(),
+    winner: computeMatchWinner(),
+    manOfMatch: state.manOfMatch,
+    innings: [packInnings(inn1), packInnings(inn2)]
+  };
+  if(state.matchHistoryCache){
+    state.matchHistoryCache = state.matchHistoryCache.concat([entry]);
+  }
+  saveMatchEntryToFirestore(entry);
+}
+
+async function saveMatchEntryToFirestore(entry){
+  if(!state.user) return;
+  try{
+    var col = window.__fb.collection(window.__fb.db, 'users', state.user.uid, 'matches');
+    await window.__fb.addDoc(col, entry);
+  }catch(e){
+    console.error('Failed to save match to Firestore:', e);
+  }
+}
+
+async function fetchMatchHistory(){
+  if(!state.user){
+    state.matchHistoryCache = [];
+    render();
+    return;
+  }
+  try{
+    var col = window.__fb.collection(window.__fb.db, 'users', state.user.uid, 'matches');
+    var q = window.__fb.query(col, window.__fb.orderBy('date','desc'), window.__fb.limit(500));
+    var snap = await window.__fb.getDocs(q);
+    var list = [];
+    snap.forEach(function(docSnap){ list.push(docSnap.data()); });
+    state.matchHistoryCache = list;
+  }catch(e){
+    console.error('Failed to load match history:', e);
+    state.matchHistoryCache = [];
+  }
+  render();
+}
+
+async function clearMatchHistory(){
+  if(!state.user) return;
+  try{
+    var col = window.__fb.collection(window.__fb.db, 'users', state.user.uid, 'matches');
+    var snap = await window.__fb.getDocs(col);
+    var deletions = [];
+    snap.forEach(function(docSnap){ deletions.push(window.__fb.deleteDoc(docSnap.ref)); });
+    await Promise.all(deletions);
+    state.matchHistoryCache = [];
+    render();
+  }catch(e){
+    console.error('Failed to clear history:', e);
+  }
+}
+
+function computeLeaderboardStats(history){
+  var teams = {}, batters = {}, bowlers = {};
+  history.forEach(function(m){
+    var teamNames = [m.innings[0].team, m.innings[1].team];
+    teamNames.forEach(function(t){
+      if(!teams[t]) teams[t] = {name:t, played:0, won:0, lost:0, tied:0, points:0};
+      teams[t].played += 1;
+    });
+    if(m.winner){
+      teams[m.winner].won += 1;
+      teams[m.winner].points += 2;
+      var loser = (m.winner===teamNames[0]) ? teamNames[1] : teamNames[0];
+      teams[loser].lost += 1;
+    } else {
+      teams[teamNames[0]].tied += 1;
+      teams[teamNames[0]].points += 1;
+      teams[teamNames[1]].tied += 1;
+      teams[teamNames[1]].points += 1;
+    }
+    m.innings.forEach(function(inn){
+      inn.batsmen.forEach(function(b){
+        var key = b.name.trim().toLowerCase();
+        if(!batters[key]) batters[key] = {name:b.name, runs:0, innings:0, highScore:0, fours:0, sixes:0};
+        batters[key].runs += b.runs;
+        batters[key].fours += b.fours;
+        batters[key].sixes += b.sixes;
+        batters[key].innings += 1;
+        if(b.runs>batters[key].highScore) batters[key].highScore = b.runs;
+      });
+      inn.bowlers.forEach(function(bw){
+        if(bw.balls===0) return;
+        var key = bw.name.trim().toLowerCase();
+        if(!bowlers[key]) bowlers[key] = {name:bw.name, wickets:0, runs:0, balls:0, maidens:0, bestWkts:0, bestRuns:0};
+        bowlers[key].wickets += bw.wickets;
+        bowlers[key].runs += bw.runs;
+        bowlers[key].balls += bw.balls;
+        bowlers[key].maidens += bw.maidens;
+        if(bw.wickets>bowlers[key].bestWkts || (bw.wickets===bowlers[key].bestWkts && bw.runs<bowlers[key].bestRuns)){
+          bowlers[key].bestWkts = bw.wickets;
+          bowlers[key].bestRuns = bw.runs;
+        }
+      });
+    });
+  });
+  return {teams:teams, batters:batters, bowlers:bowlers};
+}
+
+function openLeaderboard(){
+  state.previousScreen = state.screen;
+  state.screen = 'leaderboard';
+  if(state.matchHistoryCache===null){
+    fetchMatchHistory();
+  }
+  render();
+}
+
+function closeLeaderboard(){
+  state.screen = state.previousScreen || 'setup';
+  render();
+}
+
+function renderLeaderboard(){
+  var html = topbar();
+  html += '<div class="screen">';
+  html += '<h2 style="margin-bottom:10px;">Leaderboard</h2>';
+  if(state.matchHistoryCache===null){
+    html += '<p class="muted">Loading your match history…</p>';
+  } else if(state.matchHistoryCache.length===0){
+    html += '<p class="muted">No completed matches yet — play one to see stats here.</p>';
+  } else {
+    var stats = computeLeaderboardStats(state.matchHistoryCache);
+    html += '<div class="section-label" style="margin-top:0;">Points table</div>';
+    html += '<div class="card">';
+    Object.keys(stats.teams).map(function(k){ return stats.teams[k]; })
+      .sort(function(a,b){ return b.points-a.points; })
+      .forEach(function(t){
+        html += '<div class="result-line"><span>'+escapeHtml(t.name)+'</span><span>P'+t.played+' W'+t.won+' L'+t.lost+' T'+t.tied+' &middot; '+t.points+' pts</span></div>';
+      });
+    html += '</div>';
+
+    html += '<div class="section-label">Top run scorers</div>';
+    html += '<div class="card">';
+    Object.keys(stats.batters).map(function(k){ return stats.batters[k]; })
+      .sort(function(a,b){ return b.runs-a.runs; }).slice(0,10)
+      .forEach(function(b){
+        html += '<div class="result-line"><span>'+escapeHtml(b.name)+'</span><span>'+b.runs+' runs &middot; HS '+b.highScore+' &middot; '+b.innings+' inns</span></div>';
+      });
+    html += '</div>';
+
+    html += '<div class="section-label">Top wicket-takers</div>';
+    html += '<div class="card">';
+    Object.keys(stats.bowlers).map(function(k){ return stats.bowlers[k]; })
+      .sort(function(a,b){ return b.wickets-a.wickets; }).slice(0,10)
+      .forEach(function(bw){
+        html += '<div class="result-line"><span>'+escapeHtml(bw.name)+'</span><span>'+bw.wickets+' wkts &middot; best '+bw.bestWkts+'/'+bw.bestRuns+' &middot; '+bw.maidens+' maidens</span></div>';
+      });
+    html += '</div>';
+
+    html += '<div class="util-row"><button class="btn btn-secondary btn-small" onclick="clearMatchHistory()">Clear history</button></div>';
+  }
+  html += '<button class="btn" style="margin-top:8px;" onclick="closeLeaderboard()">Back</button>';
+  html += '</div>';
+  return html;
+}
+
 function buildInningsPrintHTML(inningsNum){
   var inn = state.data[inningsNum];
   var scoreLine = inn.runs+'-'+inn.wickets+' ('+oversStr(inn.legalBalls)+')';
 
   var html = '<div class="rpt-band"><span>'+escapeHtml(inn.battingName)+'</span><span>'+scoreLine+'</span></div>';
+  if(inn.startTime){
+    html += '<p style="font-size:10px;color:#666;margin:2px 0 6px;">Started '+formatTime12hr(inn.startTime);
+    if(inn.endTime) html += ' &middot; finished '+formatTime12hr(inn.endTime)+' &middot; took '+formatDuration(inn.startTime, inn.endTime);
+    html += '</p>';
+  }
   var pp = powerplayScore(inn);
   if(pp){
     html += '<p style="font-size:11px;margin:4px 0;"><b>Powerplay ('+state.powerplayOvers+' ov):</b> '+pp.runs+'/'+pp.wkts+' ('+pp.oversDisplay+')</p>';
@@ -1977,11 +2482,14 @@ function renderResult(){
 
   html += '<div class="winner">'+matchResultText()+'</div>';
 
-  if(state.superOver && state.superOver.winner){
+  if(state.superOver && state.superOver.data[2]){
+    var so1 = state.superOver.data[1], so2 = state.superOver.data[2];
     html += '<div class="card">';
     html += '<div class="section-label" style="margin-top:0;">Super Over</div>';
-    html += '<div class="result-line"><span>'+escapeHtml(state.superOver.data[1].battingName)+'</span><span>'+state.superOver.data[1].runs+'/'+state.superOver.data[1].wickets+'</span></div>';
-    html += '<div class="result-line"><span>'+escapeHtml(state.superOver.data[2].battingName)+'</span><span>'+state.superOver.data[2].runs+'/'+state.superOver.data[2].wickets+'</span></div>';
+    html += '<div class="result-line"><span>'+escapeHtml(so1.battingName)+'</span><span>'+so1.runs+'/'+so1.wickets+'</span></div>';
+    if(so1.strikerName) html += '<div class="muted" style="font-size:11px;margin:-4px 0 8px;">'+escapeHtml(so1.strikerName)+' &amp; '+escapeHtml(so1.nonStrikerName)+' &middot; '+escapeHtml(so1.bowlerName)+' bowling &middot; extras '+soExtrasTotal(so1)+'</div>';
+    html += '<div class="result-line"><span>'+escapeHtml(so2.battingName)+'</span><span>'+so2.runs+'/'+so2.wickets+'</span></div>';
+    if(so2.strikerName) html += '<div class="muted" style="font-size:11px;margin:-4px 0 0;">'+escapeHtml(so2.strikerName)+' &amp; '+escapeHtml(so2.nonStrikerName)+' &middot; '+escapeHtml(so2.bowlerName)+' bowling &middot; extras '+soExtrasTotal(so2)+'</div>';
     html += '</div>';
   }
 
@@ -2017,6 +2525,7 @@ function renderResult(){
   html += '<button class="btn btn-secondary btn-small" onclick="shareScorecardImage()">Share image</button>';
   html += '</div>';
   html += '<button class="btn" onclick="newMatch()">New match</button>';
+  html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;width:100%;" onclick="openLeaderboard()">View Leaderboard</button>';
   if(inn2.history.length>0 && !state.superOver){
     html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;width:100%;" onclick="undoLastBallAndResume()">Undo last ball (fix a mistake)</button>';
   }
@@ -2036,7 +2545,22 @@ function escapeHtml(s){
 }
 
 loadMatchState();
+state.screen = 'authLoading';
 render();
+
+window.onFirebaseAuthChange = function(user){
+  state.user = user;
+  state.authReady = true;
+  state.authError = null;
+  if(user){
+    state.screen = pendingResumeScreen || 'setup';
+    pendingResumeScreen = null;
+    fetchMatchHistory();
+  } else {
+    state.screen = 'login';
+  }
+  render();
+};
 </script>
 </body>
 </html>
