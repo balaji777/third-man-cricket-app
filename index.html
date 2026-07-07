@@ -280,6 +280,32 @@
   }
   .chip:active{transform:scale(0.96);}
   .chip-active{border-color:var(--amber-ink);color:var(--amber-ink);background:rgba(245,178,74,0.10);}
+  .lb-tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .lb-tab{
+    flex:1;text-align:center;padding:9px 0;border-radius:8px;
+    background:var(--panel-2);border:1px solid var(--line);
+    font-size:12px;font-weight:600;cursor:pointer;color:var(--chalk);
+    text-transform:uppercase;letter-spacing:0.03em;
+  }
+  .lb-tab.active{background:var(--amber);color:#2b1c05;border-color:var(--amber);}
+  .lb-row{
+    display:flex;align-items:center;gap:12px;padding:11px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .lb-row:last-child{border-bottom:none;}
+  .lb-avatar{
+    width:36px;height:36px;border-radius:50%;flex-shrink:0;
+    background:var(--panel-2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald',sans-serif;font-weight:600;color:var(--amber-ink);font-size:15px;
+  }
+  .lb-info{flex:1;min-width:0;}
+  .lb-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lb-stats{font-size:11px;color:var(--chalk);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lb-rank{
+    font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;
+    color:var(--chalk);min-width:32px;text-align:right;flex-shrink:0;
+  }
   @media (max-width:360px){
     .screen{padding:16px 14px;}
     .sb-score{font-size:36px;}
@@ -463,7 +489,7 @@ function freshMatch(){
     resetConfirmOpen:false,
     superOver:null,
     soNamesPopup:false, soExtraPopup:null, superOverTiedFinal:false,
-    matchRecorded:false, previousScreen:null,
+    matchRecorded:false, previousScreen:null, leaderboardTab:'batting',
     user:null, authReady:false, authError:null, matchHistoryCache:null,
     showInningsCard:{1:false, 2:false}
   };
@@ -2089,11 +2115,13 @@ function computeLeaderboardStats(history){
     m.innings.forEach(function(inn){
       inn.batsmen.forEach(function(b){
         var key = b.name.trim().toLowerCase();
-        if(!batters[key]) batters[key] = {name:b.name, runs:0, innings:0, highScore:0, fours:0, sixes:0};
+        if(!batters[key]) batters[key] = {name:b.name, runs:0, innings:0, highScore:0, fours:0, sixes:0, balls:0, outs:0};
         batters[key].runs += b.runs;
         batters[key].fours += b.fours;
         batters[key].sixes += b.sixes;
         batters[key].innings += 1;
+        batters[key].balls += b.balls;
+        if(b.out) batters[key].outs += 1;
         if(b.runs>batters[key].highScore) batters[key].highScore = b.runs;
       });
       inn.bowlers.forEach(function(bw){
@@ -2128,42 +2156,78 @@ function closeLeaderboard(){
   render();
 }
 
+function setLeaderboardTab(tab){
+  state.leaderboardTab = tab;
+  render();
+}
+
+function lbAvatar(name){
+  var letter = name.trim().charAt(0).toUpperCase() || '?';
+  return '<div class="lb-avatar">'+escapeHtml(letter)+'</div>';
+}
+
 function renderLeaderboard(){
   var html = topbar();
   html += '<div class="screen">';
-  html += '<h2 style="margin-bottom:10px;">Leaderboard</h2>';
+  html += '<h2 style="margin-bottom:14px;">Leaderboard</h2>';
+
   if(state.matchHistoryCache===null){
     html += '<p class="muted">Loading your match history…</p>';
   } else if(state.matchHistoryCache.length===0){
     html += '<p class="muted">No completed matches yet — play one to see stats here.</p>';
   } else {
     var stats = computeLeaderboardStats(state.matchHistoryCache);
-    html += '<div class="section-label" style="margin-top:0;">Points table</div>';
-    html += '<div class="card">';
-    Object.keys(stats.teams).map(function(k){ return stats.teams[k]; })
-      .sort(function(a,b){ return b.points-a.points; })
-      .forEach(function(t){
-        html += '<div class="result-line"><span>'+escapeHtml(t.name)+'</span><span>P'+t.played+' W'+t.won+' L'+t.lost+' T'+t.tied+' &middot; '+t.points+' pts</span></div>';
-      });
+    var tab = state.leaderboardTab;
+
+    html += '<div class="lb-tabs">';
+    [['batting','Batting'],['bowling','Bowling'],['points','Points']].forEach(function(pair){
+      html += '<div class="lb-tab'+(tab===pair[0]?' active':'')+'" onclick="setLeaderboardTab(\''+pair[0]+'\')">'+pair[1]+'</div>';
+    });
     html += '</div>';
 
-    html += '<div class="section-label">Top run scorers</div>';
-    html += '<div class="card">';
-    Object.keys(stats.batters).map(function(k){ return stats.batters[k]; })
-      .sort(function(a,b){ return b.runs-a.runs; }).slice(0,10)
-      .forEach(function(b){
-        html += '<div class="result-line"><span>'+escapeHtml(b.name)+'</span><span>'+b.runs+' runs &middot; HS '+b.highScore+' &middot; '+b.innings+' inns</span></div>';
+    if(tab==='batting'){
+      var batterList = Object.keys(stats.batters).map(function(k){ return stats.batters[k]; })
+        .sort(function(a,b){ return b.runs-a.runs; }).slice(0,15);
+      html += '<div class="card">';
+      batterList.forEach(function(b, i){
+        var avg = b.outs>0 ? (b.runs/b.outs).toFixed(1) : b.runs+'*';
+        var sr = b.balls>0 ? ((b.runs/b.balls)*100).toFixed(1) : '0.0';
+        html += '<div class="lb-row">';
+        html += lbAvatar(b.name);
+        html += '<div class="lb-info"><div class="lb-name">'+escapeHtml(b.name)+'</div>';
+        html += '<div class="lb-stats">Runs '+b.runs+' &middot; HS '+b.highScore+' &middot; Avg '+avg+' &middot; SR '+sr+'</div></div>';
+        html += '<div class="lb-rank">'+String(i+1).padStart(2,'0')+'</div>';
+        html += '</div>';
       });
-    html += '</div>';
-
-    html += '<div class="section-label">Top wicket-takers</div>';
-    html += '<div class="card">';
-    Object.keys(stats.bowlers).map(function(k){ return stats.bowlers[k]; })
-      .sort(function(a,b){ return b.wickets-a.wickets; }).slice(0,10)
-      .forEach(function(bw){
-        html += '<div class="result-line"><span>'+escapeHtml(bw.name)+'</span><span>'+bw.wickets+' wkts &middot; best '+bw.bestWkts+'/'+bw.bestRuns+' &middot; '+bw.maidens+' maidens</span></div>';
+      html += '</div>';
+    } else if(tab==='bowling'){
+      var bowlerList = Object.keys(stats.bowlers).map(function(k){ return stats.bowlers[k]; })
+        .sort(function(a,b){ return b.wickets-a.wickets; }).slice(0,15);
+      html += '<div class="card">';
+      bowlerList.forEach(function(bw, i){
+        var econ = bw.balls>0 ? (bw.runs/(bw.balls/6)).toFixed(2) : '0.00';
+        html += '<div class="lb-row">';
+        html += lbAvatar(bw.name);
+        html += '<div class="lb-info"><div class="lb-name">'+escapeHtml(bw.name)+'</div>';
+        html += '<div class="lb-stats">Wkts '+bw.wickets+' &middot; Best '+bw.bestWkts+'/'+bw.bestRuns+' &middot; Econ '+econ+' &middot; '+bw.maidens+' mdns</div></div>';
+        html += '<div class="lb-rank">'+String(i+1).padStart(2,'0')+'</div>';
+        html += '</div>';
       });
-    html += '</div>';
+      html += '</div>';
+    } else {
+      var teamList = Object.keys(stats.teams).map(function(k){ return stats.teams[k]; })
+        .sort(function(a,b){ return b.points-a.points; });
+      html += '<div class="card">';
+      teamList.forEach(function(t, i){
+        html += '<div class="lb-row">';
+        html += lbAvatar(t.name);
+        html += '<div class="lb-info"><div class="lb-name">'+escapeHtml(t.name)+'</div>';
+        html += '<div class="lb-stats">P'+t.played+' &middot; W'+t.won+' &middot; L'+t.lost+' &middot; T'+t.tied+'</div></div>';
+        html += '<div class="lb-rank">'+t.points+'<span style="font-size:10px;display:block;color:var(--chalk);">pts</span></div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
 
     html += '<div class="util-row"><button class="btn btn-secondary btn-small" onclick="clearMatchHistory()">Clear history</button></div>';
   }
