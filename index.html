@@ -442,8 +442,8 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
   import {
-    getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signInAnonymously,
-    onAuthStateChanged, signOut, linkWithRedirect
+    getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously,
+    onAuthStateChanged, signOut, linkWithPopup
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
   import {
     getFirestore, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
@@ -464,16 +464,9 @@
   const db = getFirestore(fbApp);
 
   window.__fb = {
-    auth, db, GoogleAuthProvider, signInWithRedirect, signInAnonymously,
-    signOut, linkWithRedirect, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
+    auth, db, GoogleAuthProvider, signInWithPopup, signInAnonymously,
+    signOut, linkWithPopup, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
   };
-
-  getRedirectResult(auth).then(function(result){
-    console.log('[auth] getRedirectResult:', result);
-  }).catch(function(err){
-    console.error('[auth] getRedirectResult error:', err);
-    if(window.onFirebaseAuthError) window.onFirebaseAuthError(err);
-  });
 
   onAuthStateChanged(auth, function(user){
     console.log('[auth] onAuthStateChanged:', user);
@@ -1305,12 +1298,10 @@ function signInWithGoogle(){
   state.authError = null;
   try{
     var provider = new window.__fb.GoogleAuthProvider();
-    window.__fb.signInWithRedirect(window.__fb.auth, provider).catch(function(err){
-      state.authError = 'Redirect failed: '+(err && err.message ? err.message : String(err));
+    window.__fb.signInWithPopup(window.__fb.auth, provider).catch(function(err){
+      state.authError = err.message || 'Sign-in failed. Please try again.';
       render();
     });
-    state.authError = 'Redirecting to Google… if this message stays, the redirect was blocked.';
-    render();
   }catch(e){
     state.authError = 'Could not start sign-in: '+e.message;
     render();
@@ -1333,7 +1324,13 @@ function upgradeToGoogle(){
   if(!state.user || !state.user.isAnonymous) return;
   state.authError = null;
   var provider = new window.__fb.GoogleAuthProvider();
-  window.__fb.linkWithRedirect(state.user, provider);
+  window.__fb.linkWithPopup(state.user, provider).then(function(result){
+    state.user = result.user;
+    render();
+  }).catch(function(err){
+    state.authError = err.message || 'Could not link Google account.';
+    render();
+  });
 }
 
 function renderAuthLoading(){
