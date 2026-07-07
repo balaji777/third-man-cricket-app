@@ -468,11 +468,15 @@
     signOut, linkWithRedirect, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
   };
 
-  getRedirectResult(auth).catch(function(err){
+  getRedirectResult(auth).then(function(result){
+    console.log('[auth] getRedirectResult:', result);
+  }).catch(function(err){
+    console.error('[auth] getRedirectResult error:', err);
     if(window.onFirebaseAuthError) window.onFirebaseAuthError(err);
   });
 
   onAuthStateChanged(auth, function(user){
+    console.log('[auth] onAuthStateChanged:', user);
     if(window.onFirebaseAuthChange) window.onFirebaseAuthChange(user);
   });
 </script>
