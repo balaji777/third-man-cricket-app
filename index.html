@@ -443,7 +443,8 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
   import {
     getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously,
-    onAuthStateChanged, signOut, linkWithPopup
+    onAuthStateChanged, signOut, linkWithPopup,
+    setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
   import {
     getFirestore, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
@@ -467,6 +468,20 @@
     auth, db, GoogleAuthProvider, signInWithPopup, signInAnonymously,
     signOut, linkWithPopup, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
   };
+
+  setPersistence(auth, browserLocalPersistence)
+    .then(function(){ console.log('[auth] persistence: browserLocal OK'); })
+    .catch(function(err1){
+      console.warn('[auth] browserLocalPersistence failed:', err1);
+      setPersistence(auth, browserSessionPersistence)
+        .then(function(){ console.log('[auth] persistence: browserSession OK (fallback)'); })
+        .catch(function(err2){
+          console.warn('[auth] browserSessionPersistence failed:', err2);
+          setPersistence(auth, inMemoryPersistence)
+            .then(function(){ console.log('[auth] persistence: inMemory OK (last resort — session will not survive reload)'); })
+            .catch(function(err3){ console.error('[auth] ALL persistence methods failed:', err3); });
+        });
+    });
 
   onAuthStateChanged(auth, function(user){
     console.log('[auth] onAuthStateChanged:', user);
