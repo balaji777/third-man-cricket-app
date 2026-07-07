@@ -1299,8 +1299,18 @@ function toggleTheme(){
 
 function signInWithGoogle(){
   state.authError = null;
-  var provider = new window.__fb.GoogleAuthProvider();
-  window.__fb.signInWithRedirect(window.__fb.auth, provider);
+  try{
+    var provider = new window.__fb.GoogleAuthProvider();
+    window.__fb.signInWithRedirect(window.__fb.auth, provider).catch(function(err){
+      state.authError = 'Redirect failed: '+(err && err.message ? err.message : String(err));
+      render();
+    });
+    state.authError = 'Redirecting to Google… if this message stays, the redirect was blocked.';
+    render();
+  }catch(e){
+    state.authError = 'Could not start sign-in: '+e.message;
+    render();
+  }
 }
 
 function continueAsGuest(){
