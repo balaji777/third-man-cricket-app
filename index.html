@@ -10,8 +10,6 @@
 <meta name="theme-color" content="#173025">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Third Man">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --pitch:#0E1A15;
@@ -37,7 +35,7 @@
   html,body{margin:0;padding:0;}
   body{
     background:var(--navy);
-    font-family:'Inter',sans-serif;
+    font-family:'Times New Roman', Times, serif;
     color:var(--floodlight);
     min-height:100vh;
     display:flex;
@@ -70,7 +68,7 @@
     opacity:0.7;
   }
   .brand{
-    font-family:'Oswald',sans-serif;
+    font-family:'Times New Roman', Times, serif;
     font-weight:600;
     letter-spacing:0.06em;
     font-size:15px;
@@ -104,8 +102,12 @@
   }
   #app.light .extrabtn{color:var(--chalk);}
   #app.light .muted{color:var(--chalk);}
-  h1,h2,h3{font-family:'Oswald',sans-serif;margin:0;font-weight:600;}
-  .screen{padding:20px 18px;}
+  h1,h2,h3{font-family:'Times New Roman', Times, serif;margin:0;font-weight:600;}
+  .screen{padding:20px 18px;animation:screenIn 0.25s ease;}
+  @keyframes screenIn{
+    from{opacity:0;transform:translateY(6px);}
+    to{opacity:1;transform:translateY(0);}
+  }
   label{
     display:block;
     font-size:11px;
@@ -123,7 +125,7 @@
     padding:11px 12px;
     border-radius:6px;
     font-size:15px;
-    font-family:'Inter',sans-serif;
+    font-family:'Times New Roman', Times, serif;
     margin-bottom:16px;
   }
   input:focus{outline:none;border-color:var(--amber-ink);}
@@ -132,10 +134,11 @@
   .card{
     background:var(--panel);
     border:1px solid var(--line);
+    border-top:2px solid var(--amber-ink);
     border-radius:10px;
     padding:16px;
     margin-bottom:16px;
-    box-shadow:var(--shadow-card);
+    box-shadow:var(--shadow-card), 0 6px 16px rgba(0,0,0,0.15);
   }
   .btn{
     display:block;
@@ -146,24 +149,29 @@
     border:none;
     padding:14px;
     border-radius:8px;
-    font-family:'Oswald',sans-serif;
+    font-family:'Times New Roman', Times, serif;
     font-weight:600;
     letter-spacing:0.03em;
     font-size:15px;
     text-transform:uppercase;
     cursor:pointer;
     margin-top:6px;
+    box-shadow:0 3px 0 rgba(0,0,0,0.22), 0 4px 10px rgba(0,0,0,0.18);
+    transition:transform 0.12s ease, box-shadow 0.12s ease, filter 0.15s ease;
   }
-  .btn:active{transform:scale(0.98);}
+  .btn:hover{filter:brightness(1.04);}
+  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14);}
   .btn-outline{
     background:transparent;
     border:1px solid var(--amber-ink);
     color:var(--amber-ink);
+    box-shadow:none;
   }
   .btn-secondary{
     background:var(--panel-2);
     border:1px solid var(--line);
     color:var(--floodlight);
+    box-shadow:0 2px 0 rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.12);
   }
   .btn-small{padding:9px;font-size:12px;}
   .pick{
@@ -172,11 +180,13 @@
     border-radius:8px;
     padding:14px;
     text-align:center;
-    font-family:'Oswald',sans-serif;
+    font-family:'Times New Roman', Times, serif;
     font-weight:600;
     cursor:pointer;
     color:var(--floodlight);
+    transition:transform 0.1s ease, background 0.15s ease;
   }
+  .pick:active{transform:scale(0.96);}
   .pick.active{border-color:var(--amber-ink);color:var(--amber-ink);background:rgba(242,169,60,0.08);}
   .scoreboard{
     background:var(--navy);
@@ -191,7 +201,7 @@
     font-size:13px;color:var(--stat-dark-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;
   }
   .sb-score{
-    font-family:'Share Tech Mono',monospace;
+    font-family:'Times New Roman', Times, serif;
     font-size:44px;
     color:var(--amber);
     line-height:1.1;
@@ -201,12 +211,12 @@
   .sb-meta{
     display:flex;justify-content:center;gap:18px;
     margin-top:8px;font-size:12px;color:var(--stat-dark-muted);
-    font-family:'Share Tech Mono',monospace;
+    font-family:'Times New Roman', Times, serif;
   }
   .sb-target{margin-top:8px;font-size:12px;color:var(--stat-dark-muted);}
   .sb-target b{color:var(--stat-dark-text);}
   .pp-banner{
-    margin-top:8px;background:var(--teal);color:#fff;font-family:'Oswald',sans-serif;
+    margin-top:8px;background:var(--teal);color:#fff;font-family:'Times New Roman', Times, serif;
     font-weight:700;letter-spacing:0.08em;font-size:12px;padding:5px 0;border-radius:6px;
   }
   .ticker{
@@ -215,7 +225,7 @@
   .ball{
     width:26px;height:26px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    font-size:11px;font-weight:600;font-family:'Share Tech Mono',monospace;
+    font-size:11px;font-weight:600;font-family:'Times New Roman', Times, serif;
     background:var(--panel-2);border:1px solid var(--line);color:var(--floodlight);
   }
   .ball.four{background:var(--amber);color:#2b1c05;border-color:var(--amber);}
@@ -235,7 +245,7 @@
     background:transparent;border:none;padding:2px 0;margin:0;
     font-size:14px;color:inherit;font-weight:inherit;width:auto;flex:1;
   }
-  .bat-figs{font-family:'Share Tech Mono',monospace;color:var(--chalk);font-size:13px;}
+  .bat-figs{font-family:'Times New Roman', Times, serif;color:var(--chalk);font-size:13px;}
   .bat-row.striker .bat-figs{color:var(--amber-ink);}
   .sr-strike{font-size:10px;color:var(--amber-ink);margin-left:6px;}
   .partnership-line{
@@ -254,8 +264,10 @@
   .runbtn{
     background:var(--panel-2);border:1px solid var(--line);color:var(--floodlight);
     border-radius:8px;padding:14px 0;text-align:center;
-    font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:600;cursor:pointer;
+    font-family:'Times New Roman', Times, serif;font-size:20px;font-weight:600;cursor:pointer;
+    transition:transform 0.1s ease, filter 0.15s ease;
   }
+  .runbtn:active{transform:scale(0.95);}
   .runbtn:active{transform:scale(0.96);}
   .runbtn.four{background:var(--amber);border-color:var(--amber);color:#2b1c05;}
   .runbtn.six{background:var(--red);border-color:var(--red);color:#fff;}
@@ -268,7 +280,7 @@
   .numpad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:4px;}
   .numbtn{
     background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
-    padding:12px 0;font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:600;
+    padding:12px 0;font-family:'Times New Roman', Times, serif;font-size:16px;font-weight:600;
     cursor:pointer;color:var(--floodlight);
   }
   .numbtn:active{transform:scale(0.94);}
@@ -276,7 +288,7 @@
   .chip{
     background:var(--panel-2);border:1px solid var(--line);border-radius:20px;
     padding:8px 14px;font-size:13px;font-weight:600;color:var(--floodlight);
-    cursor:pointer;
+    cursor:pointer;transition:transform 0.1s ease;
   }
   .chip:active{transform:scale(0.96);}
   .chip-active{border-color:var(--amber-ink);color:var(--amber-ink);background:rgba(245,178,74,0.10);}
@@ -297,13 +309,13 @@
     width:36px;height:36px;border-radius:50%;flex-shrink:0;
     background:var(--panel-2);border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;
-    font-family:'Oswald',sans-serif;font-weight:600;color:var(--amber-ink);font-size:15px;
+    font-family:'Times New Roman', Times, serif;font-weight:600;color:var(--amber-ink);font-size:15px;
   }
   .lb-info{flex:1;min-width:0;}
   .lb-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .lb-stats{font-size:11px;color:var(--chalk);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .lb-rank{
-    font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;
+    font-family:'Times New Roman', Times, serif;font-size:20px;font-weight:700;
     color:var(--chalk);min-width:32px;text-align:right;flex-shrink:0;
   }
   @media (max-width:360px){
@@ -324,8 +336,8 @@
   .wktbtn{
     background:var(--red);border:1px solid var(--red);color:#fff;
     border-radius:8px;padding:12px 0;text-align:center;font-weight:600;cursor:pointer;
-    font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:13px;
-    margin-bottom:8px;
+    font-family:'Times New Roman', Times, serif;text-transform:uppercase;letter-spacing:0.05em;font-size:13px;
+    margin-bottom:8px;transition:transform 0.1s ease;
   }
   .wktbtn:active{transform:scale(0.98);}
   .util-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
@@ -343,7 +355,7 @@
   .result-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--line);}
   .result-line:last-child{border-bottom:none;}
   .winner{
-    text-align:center;font-family:'Oswald',sans-serif;font-size:20px;color:var(--amber-ink);
+    text-align:center;font-family:'Times New Roman', Times, serif;font-size:20px;color:var(--amber-ink);
     margin:10px 0 18px;text-transform:uppercase;letter-spacing:0.03em;
   }
   .muted{color:var(--chalk);font-size:12px;}
@@ -364,7 +376,7 @@
     box-shadow:0 20px 60px rgba(0,0,0,0.55);
   }
   .toss-reveal{
-    font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;
+    font-family:'Times New Roman', Times, serif;font-size:26px;font-weight:700;
     padding:34px 10px;border-radius:12px;letter-spacing:0.02em;
   }
   .toss-reveal.team-a{
@@ -823,6 +835,13 @@ function formatDuration(startMs, endMs){
   if(mins<60) return mins+' min';
   var h = Math.floor(mins/60), m = mins%60;
   return h+'h '+m+'m';
+}
+
+function formatDateShort(ms){
+  if(!ms) return '';
+  var d = new Date(ms);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate()+' '+months[d.getMonth()]+' '+d.getFullYear();
 }
 
 function rate(runs, balls){
@@ -1308,7 +1327,7 @@ function renderAuthLoading(){
 
 function renderLogin(){
   var html = '<div class="screen" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;">';
-  html += '<div style="font-family:\'Oswald\',sans-serif;font-weight:600;letter-spacing:0.06em;font-size:26px;color:var(--amber);text-transform:uppercase;margin-bottom:2px;">Third Man</div>';
+  html += '<div style="font-family:\'Times New Roman\', Times, serif;font-weight:600;letter-spacing:0.06em;font-size:26px;color:var(--amber);text-transform:uppercase;margin-bottom:2px;">Third Man</div>';
   html += '<div class="muted" style="margin-bottom:36px;">Cricket Scorer</div>';
   html += '<button class="btn" style="max-width:280px;width:100%;" onclick="signInWithGoogle()">Sign in with Google</button>';
   html += '<button class="btn btn-secondary" style="max-width:280px;width:100%;margin-top:10px;" onclick="continueAsGuest()">Continue as Guest</button>';
@@ -2180,7 +2199,7 @@ function renderLeaderboard(){
     var tab = state.leaderboardTab;
 
     html += '<div class="lb-tabs">';
-    [['batting','Batting'],['bowling','Bowling'],['points','Points']].forEach(function(pair){
+    [['batting','Batting'],['bowling','Bowling'],['points','Points'],['history','History']].forEach(function(pair){
       html += '<div class="lb-tab'+(tab===pair[0]?' active':'')+'" onclick="setLeaderboardTab(\''+pair[0]+'\')">'+pair[1]+'</div>';
     });
     html += '</div>';
@@ -2214,7 +2233,7 @@ function renderLeaderboard(){
         html += '</div>';
       });
       html += '</div>';
-    } else {
+    } else if(tab==='points'){
       var teamList = Object.keys(stats.teams).map(function(k){ return stats.teams[k]; })
         .sort(function(a,b){ return b.points-a.points; });
       html += '<div class="card">';
@@ -2227,9 +2246,21 @@ function renderLeaderboard(){
         html += '</div>';
       });
       html += '</div>';
+    } else if(tab==='history'){
+      html += '<div class="card">';
+      state.matchHistoryCache.forEach(function(m){
+        html += '<div class="lb-row">';
+        html += '<div class="lb-info"><div class="lb-name">'+escapeHtml(m.teamA)+' vs '+escapeHtml(m.teamB)+'</div>';
+        html += '<div class="lb-stats">'+escapeHtml(m.resultText)+' &middot; '+m.innings[0].runs+'/'+m.innings[0].wickets+' - '+m.innings[1].runs+'/'+m.innings[1].wickets+'</div></div>';
+        html += '<div style="text-align:right;flex-shrink:0;">';
+        html += '<div style="font-size:12px;font-weight:600;">'+formatDateShort(m.date)+'</div>';
+        html += '<div style="font-size:10px;color:var(--chalk);">'+formatTime12hr(m.date)+'</div>';
+        html += '</div></div>';
+      });
+      html += '</div>';
     }
 
-    html += '<div class="util-row"><button class="btn btn-secondary btn-small" onclick="clearMatchHistory()">Clear history</button></div>';
+    html += '<div class="util-row"><button class="btn btn-secondary btn-small" onclick="exportLeaderboardPDF()">Export PDF</button><button class="btn btn-secondary btn-small" onclick="clearMatchHistory()">Clear history</button></div>';
   }
   html += '<button class="btn" style="margin-top:8px;" onclick="closeLeaderboard()">Back</button>';
   html += '</div>';
@@ -2346,6 +2377,55 @@ function exportInningsPDF(inningsNum){
   var inn = state.data[inningsNum];
   var html = '<h1>'+escapeHtml(inn.battingName)+' — Innings Report</h1>'+buildInningsPrintHTML(inningsNum);
   printAndRestoreTitle(html, inn.battingName+'_innings_report');
+}
+
+function buildLeaderboardPrintHTML(){
+  var stats = computeLeaderboardStats(state.matchHistoryCache);
+  var html = '<h1>Leaderboard</h1>';
+
+  html += '<div class="rpt-band"><span>Points Table</span><span>&nbsp;</span></div>';
+  html += '<table><tr><th>Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>Pts</th></tr>';
+  Object.keys(stats.teams).map(function(k){ return stats.teams[k]; })
+    .sort(function(a,b){ return b.points-a.points; })
+    .forEach(function(t){
+      html += '<tr><td>'+escapeHtml(t.name)+'</td><td>'+t.played+'</td><td>'+t.won+'</td><td>'+t.lost+'</td><td>'+t.tied+'</td><td>'+t.points+'</td></tr>';
+    });
+  html += '</table>';
+
+  html += '<div class="rpt-band"><span>Top Run Scorers</span><span>&nbsp;</span></div>';
+  html += '<table><tr><th>Batsman</th><th>Runs</th><th>HS</th><th>Avg</th><th>SR</th><th>Inns</th></tr>';
+  Object.keys(stats.batters).map(function(k){ return stats.batters[k]; })
+    .sort(function(a,b){ return b.runs-a.runs; }).slice(0,20)
+    .forEach(function(b){
+      var avg = b.outs>0 ? (b.runs/b.outs).toFixed(1) : b.runs+'*';
+      var sr = b.balls>0 ? ((b.runs/b.balls)*100).toFixed(1) : '0.0';
+      html += '<tr><td>'+escapeHtml(b.name)+'</td><td>'+b.runs+'</td><td>'+b.highScore+'</td><td>'+avg+'</td><td>'+sr+'</td><td>'+b.innings+'</td></tr>';
+    });
+  html += '</table>';
+
+  html += '<div class="rpt-band"><span>Top Wicket-Takers</span><span>&nbsp;</span></div>';
+  html += '<table><tr><th>Bowler</th><th>Wkts</th><th>Best</th><th>Econ</th><th>Maidens</th></tr>';
+  Object.keys(stats.bowlers).map(function(k){ return stats.bowlers[k]; })
+    .sort(function(a,b){ return b.wickets-a.wickets; }).slice(0,20)
+    .forEach(function(bw){
+      var econ = bw.balls>0 ? (bw.runs/(bw.balls/6)).toFixed(2) : '0.00';
+      html += '<tr><td>'+escapeHtml(bw.name)+'</td><td>'+bw.wickets+'</td><td>'+bw.bestWkts+'/'+bw.bestRuns+'</td><td>'+econ+'</td><td>'+bw.maidens+'</td></tr>';
+    });
+  html += '</table>';
+
+  html += '<div class="rpt-band"><span>Match History</span><span>&nbsp;</span></div>';
+  html += '<table><tr><th>Date</th><th>Match</th><th>Result</th></tr>';
+  state.matchHistoryCache.forEach(function(m){
+    html += '<tr><td>'+formatDateShort(m.date)+'</td><td>'+escapeHtml(m.teamA)+' vs '+escapeHtml(m.teamB)+'</td><td>'+escapeHtml(m.resultText)+'</td></tr>';
+  });
+  html += '</table>';
+
+  return html;
+}
+
+function exportLeaderboardPDF(){
+  if(!state.matchHistoryCache || state.matchHistoryCache.length===0) return;
+  printAndRestoreTitle(buildLeaderboardPrintHTML(), 'leaderboard_report');
 }
 
 function generateInningsShareText(inningsNum){
@@ -2574,7 +2654,7 @@ function renderResult(){
   if(state.manOfMatch){
     html += '<div class="card" style="text-align:center;">';
     html += '<div class="section-label" style="margin-top:0;">Player of the Match</div>';
-    html += '<div style="font-family:\'Oswald\',sans-serif;font-size:20px;font-weight:600;color:var(--amber-ink);">'+escapeHtml(state.manOfMatch)+'</div>';
+    html += '<div style="font-family:\'Times New Roman\', Times, serif;font-size:20px;font-weight:600;color:var(--amber-ink);">'+escapeHtml(state.manOfMatch)+'</div>';
     html += '</div>';
   }
 
