@@ -896,7 +896,9 @@ function renderScoring(){
   var html = topbar();
   html += '<div class="screen">';
 
-  html += '<div class="scoreboard">';
+  var lastBall = inn.thisOver.length ? inn.thisOver[inn.thisOver.length-1] : null;
+  var flashClass = lastBall==='6' ? ' flash-six' : lastBall==='4' ? ' flash-four' : lastBall==='W' ? ' flash-wicket' : '';
+  html += '<div class="scoreboard'+flashClass+'">';
   html += '<div class="sb-team">'+escapeHtml(inn.battingName)+' batting</div>';
   html += '<div class="sb-score">'+inn.runs+'<small>/'+inn.wickets+'</small></div>';
   html += '<div class="sb-meta"><span>OV '+oversStr(inn.legalBalls)+' / '+state.overs+'</span><span>CRR '+rate(inn.runs, inn.legalBalls)+'</span></div>';
@@ -916,7 +918,10 @@ function renderScoring(){
   if(inn.thisOver.length===0){
     html += '<span style="font-size:11px;color:var(--stat-dark-muted);">New over — '+escapeHtml(currentBowler(inn).name)+' to bowl</span>';
   }
-  inn.thisOver.forEach(function(b){ html += '<div class="'+ballClass(b)+'">'+b+'</div>'; });
+  inn.thisOver.forEach(function(b,i){
+    var newCls = (i===inn.thisOver.length-1) ? ' ball-new' : '';
+    html += '<div class="'+ballClass(b)+newCls+'">'+b+'</div>';
+  });
   html += '</div>';
   html += '</div>';
 
