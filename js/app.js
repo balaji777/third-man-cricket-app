@@ -876,8 +876,11 @@ function upgradeToGoogle(){
 function renderAuthLoading(){
   var html = '<div class="screen splash">';
   html += '<div class="splash-field">';
+  html += '<div class="splash-crease"></div>';
+  html += '<div class="splash-stumps"><span></span><span></span><span></span><i></i></div>';
   html += '<div class="splash-ball"></div>';
   html += '<div class="splash-impact"></div>';
+  html += '<div class="splash-spark"></div><div class="splash-spark"></div><div class="splash-spark"></div><div class="splash-spark"></div>';
   html += '<div class="splash-bat"></div>';
   html += '</div>';
   html += '<div class="splash-title">';
