@@ -874,7 +874,19 @@ function upgradeToGoogle(){
 }
 
 function renderAuthLoading(){
-  return '<div class="screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;"><p class="muted">Loading…</p></div>';
+  var html = '<div class="screen splash">';
+  html += '<div class="splash-field">';
+  html += '<div class="splash-ball"></div>';
+  html += '<div class="splash-impact"></div>';
+  html += '<div class="splash-bat"></div>';
+  html += '</div>';
+  html += '<div class="splash-title">';
+  html += '<div class="splash-wordmark">Third Man</div>';
+  html += '<div class="splash-tagline">Cricket Scorer</div>';
+  html += '</div>';
+  html += '<div class="splash-dots"><span></span><span></span><span></span></div>';
+  html += '</div>';
+  return html;
 }
 
 function renderLogin(){
@@ -2244,18 +2256,29 @@ loadMatchState();
 state.screen = 'authLoading';
 render();
 
+var SPLASH_MIN_MS = 1600;
+var splashStartTime = Date.now();
+
 window.onFirebaseAuthChange = function(user){
-  state.user = user;
-  state.authReady = true;
-  if(user){
-    state.authError = null;
-    state.screen = pendingResumeScreen || 'setup';
-    pendingResumeScreen = null;
-    fetchMatchHistory();
+  var applyAuthChange = function(){
+    state.user = user;
+    state.authReady = true;
+    if(user){
+      state.authError = null;
+      state.screen = pendingResumeScreen || 'setup';
+      pendingResumeScreen = null;
+      fetchMatchHistory();
+    } else {
+      state.screen = 'login';
+    }
+    render();
+  };
+  var elapsed = Date.now() - splashStartTime;
+  if(state.screen==='authLoading' && elapsed < SPLASH_MIN_MS){
+    setTimeout(applyAuthChange, SPLASH_MIN_MS - elapsed);
   } else {
-    state.screen = 'login';
+    applyAuthChange();
   }
-  render();
 };
 
 window.onFirebaseAuthError = function(err){
