@@ -140,6 +140,9 @@ function renderSetup(){
     html += '<div class="card" style="margin-bottom:16px;text-align:center;">';
     html += '<p class="muted" style="margin:0 0 10px;">Playing as guest — sign in to save your stats across devices.</p>';
     html += '<button class="btn btn-secondary btn-small" style="width:100%;" onclick="upgradeToGoogle()">Sign in with Google</button>';
+    if(state.authError){
+      html += '<p style="color:var(--red);font-size:12px;margin:10px 0 0;">'+escapeHtml(state.authError)+'</p>';
+    }
     html += '</div>';
   }
 
@@ -848,6 +851,13 @@ function upgradeToGoogle(){
     state.user = result.user;
     render();
   }).catch(function(err){
+    if(err && err.code==='auth/credential-already-in-use'){
+      window.__fb.signInWithPopup(window.__fb.auth, provider).catch(function(err2){
+        state.authError = err2.message || 'Could not sign in with Google.';
+        render();
+      });
+      return;
+    }
     state.authError = err.message || 'Could not link Google account.';
     render();
   });
