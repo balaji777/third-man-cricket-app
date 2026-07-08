@@ -852,11 +852,14 @@ function upgradeToGoogle(){
     render();
   }).catch(function(err){
     if(err && err.code==='auth/credential-already-in-use'){
-      window.__fb.signInWithPopup(window.__fb.auth, provider).catch(function(err2){
-        state.authError = err2.message || 'Could not sign in with Google.';
-        render();
-      });
-      return;
+      var cred = window.__fb.GoogleAuthProvider.credentialFromError(err);
+      if(cred){
+        window.__fb.signInWithCredential(window.__fb.auth, cred).catch(function(err2){
+          state.authError = err2.message || 'Could not sign in with Google.';
+          render();
+        });
+        return;
+      }
     }
     state.authError = err.message || 'Could not link Google account.';
     render();
