@@ -80,7 +80,7 @@ function loadMatchState(){
     var saved = localStorage.getItem('creaseMatchState');
     if(!saved) return false;
     var parsed = JSON.parse(saved);
-    if(!parsed || !parsed.screen || parsed.screen==='setup') return false;
+    if(!parsed || !parsed.screen || parsed.screen==='setup' || parsed.screen==='login' || parsed.screen==='authLoading') return false;
     state = parsed;
     state.playerPopup = null;
     state.extraPopup = null;
