@@ -48,6 +48,8 @@ function freshInnings(battingName, bowlingName){
   };
 }
 
+var lastRenderedScreen = null;
+
 function render(){
   var app = document.getElementById('app');
   app.className = state.theme==='light' ? 'light' : '';
@@ -62,6 +64,11 @@ function render(){
   else if(state.screen==='leaderboard') app.innerHTML = renderLeaderboard();
   else if(state.screen==='authLoading') app.innerHTML = renderAuthLoading();
   else if(state.screen==='login') app.innerHTML = renderLogin();
+  if(state.screen===lastRenderedScreen){
+    var screenEl = app.querySelector('.screen');
+    if(screenEl) screenEl.style.animation = 'none';
+  }
+  lastRenderedScreen = state.screen;
   saveMatchState();
 }
 
