@@ -77,7 +77,7 @@ function saveMatchState(){
     var toSave = Object.assign({}, state);
     delete toSave.user;
     localStorage.setItem('creaseMatchState', JSON.stringify(toSave));
-  }catch(e){}
+  }catch(e){ /* storage unavailable or full; state just won't persist */ }
 }
 
 var pendingResumeScreen = null;
@@ -107,7 +107,7 @@ function loadMatchState(){
 }
 
 function clearSavedMatch(){
-  try{ localStorage.removeItem('creaseMatchState'); }catch(e){}
+  try{ localStorage.removeItem('creaseMatchState'); }catch(e){ /* storage unavailable */ }
 }
 
 function topbar(){
@@ -338,6 +338,7 @@ function undoLastBallAndResume(){
     state.target = null;
   } else {
     state.manOfMatch = null;
+    state.matchRecorded = false;
   }
   render();
 }
@@ -430,9 +431,9 @@ function confirmExtra(n){
     if(n%2===1){ swapStrike(inn); }
   } else if(type==='nb'){
     var batRuns = n;
-    var total = n+1;
-    inn.runs += total;
-    bwl.runs += total;
+    var nbTotal = n+1;
+    inn.runs += nbTotal;
+    bwl.runs += nbTotal;
     inn.extras.nb += 1;
     var bat = striker(inn);
     bat.balls += 1;
@@ -474,7 +475,7 @@ function swapStrike(inn){
 
 function checkOverEnd(inn){
   if(inn.legalBalls>0 && inn.legalBalls%6===0){
-    if(computeOverTotal(inn.thisOver)===0){
+    if(isMaidenOver(inn.thisOver)){
       currentBowler(inn).maidens += 1;
     }
     inn.overHistory.push(inn.thisOver);
@@ -500,6 +501,15 @@ function parseBallRuns(b){
 
 function computeOverTotal(overArr){
   return overArr.reduce(function(sum,b){ return sum + parseBallRuns(b); }, 0);
+}
+
+function isMaidenOver(overArr){
+  for(var i=0;i<overArr.length;i++){
+    var b = overArr[i];
+    if(/^wd/.test(b) || /^nb/.test(b)) return false;
+    if(/^\d+$/.test(b) && b!=='0') return false;
+  }
+  return true;
 }
 
 function powerplayScore(inn){
@@ -1370,8 +1380,8 @@ function confirmSOExtra(n){
     inn.extras.wd += total;
     inn.log.push(n===0 ? 'wd' : 'wd'+total);
   } else if(type==='nb'){
-    var total = n+1;
-    inn.runs += total;
+    var nbTotal = n+1;
+    inn.runs += nbTotal;
     inn.extras.nb += 1;
     inn.log.push(n>0 ? 'nb'+n : 'nb');
   } else if(type==='b'){
@@ -1514,17 +1524,21 @@ function buildWormChartSVG(){
   var inn1 = state.data[1], inn2 = state.data[2];
   var w=300, h=170, padL=28, padR=14, padT=12, padB=14;
   function cumulative(inn){
-    var arr=[0], running=0;
-    inn.overHistory.forEach(function(ov){ running += computeOverTotal(ov); arr.push(running); });
+    var arr=[{x:0,y:0}], running=0;
+    inn.overHistory.forEach(function(ov,i){ running += computeOverTotal(ov); arr.push({x:i+1,y:running}); });
+    if(inn.thisOver.length>0){
+      running += computeOverTotal(inn.thisOver);
+      arr.push({x: inn.overHistory.length + inn.thisOver.length/6, y: running});
+    }
     return arr;
   }
   var c1 = cumulative(inn1), c2 = cumulative(inn2);
-  var maxOvers = Math.max(c1.length-1, c2.length-1, 1);
-  var maxRuns = Math.max(c1[c1.length-1]||0, c2[c2.length-1]||0, 10);
+  var maxOvers = Math.max(c1[c1.length-1].x, c2[c2.length-1].x, 1);
+  var maxRuns = Math.max(c1[c1.length-1].y, c2[c2.length-1].y, 10);
   function toPoints(arr){
-    return arr.map(function(val,i){
-      var x = padL + (i/maxOvers)*(w-padL-padR);
-      var y = h-padB - (val/maxRuns)*(h-padT-padB);
+    return arr.map(function(p){
+      var x = padL + (p.x/maxOvers)*(w-padL-padR);
+      var y = h-padB - (p.y/maxRuns)*(h-padT-padB);
       return x.toFixed(1)+','+y.toFixed(1);
     }).join(' ');
   }
@@ -2288,3 +2302,20 @@ window.onFirebaseAuthError = function(err){
   state.authError = (err && err.message) ? err.message : 'Sign-in failed. Please try again.';
   render();
 };
+
+// Test-only export hook. `module` is undefined in the browser (this file is a
+// classic script, not loaded as a module), so this is a no-op outside Node.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    freshMatch, freshInnings,
+    parseBallRuns, computeOverTotal, isMaidenOver,
+    oversStr, rate, strikeRate, economyRate, howOutText,
+    curInnings, striker, nonStriker, currentBowler,
+    addRuns, confirmExtra, finalizeWicket, checkOverEnd, checkInningsEnd,
+    undo, undoLastBallAndResume, setNextBowler,
+    computeAutoMOTM, matchResultText, computeLeaderboardStats,
+    buildWormChartSVG,
+    getState: function(){ return state; },
+    setState: function(s){ state = s; }
+  };
+}
