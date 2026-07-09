@@ -19,7 +19,7 @@ function freshMatch(){
     resetConfirmOpen:false,
     superOver:null,
     soNamesPopup:false, soExtraPopup:null, superOverTiedFinal:false,
-    matchRecorded:false, previousScreen:null, leaderboardTab:'batting',
+    matchRecorded:false, matchHistoryDocId:null, previousScreen:null, leaderboardTab:'batting',
     user:null, authReady:false, authError:null, matchHistoryCache:null,
     showInningsCard:{1:false, 2:false},
     guestUpsellOpen:false, guestUpsellSeen:false
@@ -1697,7 +1697,15 @@ function recordMatchToHistory(){
     manOfMatch: state.manOfMatch,
     innings: [packInnings(inn1), packInnings(inn2)]
   };
-  if(state.matchHistoryCache){
+  if(state.matchHistoryDocId){
+    // Re-recording a corrected result (e.g. "Undo last ball" was used from
+    // the result screen, possibly after closing and reopening the browser).
+    // The previous Firestore entry for this match is about to be replaced,
+    // so invalidate the cache rather than appending -- otherwise both the
+    // stale and corrected entries would show up side by side until the
+    // leaderboard is reloaded.
+    state.matchHistoryCache = null;
+  } else if(state.matchHistoryCache){
     state.matchHistoryCache = state.matchHistoryCache.concat([entry]);
   }
   saveMatchEntryToFirestore(entry);
@@ -1705,9 +1713,22 @@ function recordMatchToHistory(){
 
 async function saveMatchEntryToFirestore(entry){
   if(!state.user) return;
+  var previousDocId = state.matchHistoryDocId;
   try{
     var col = window.__fb.collection(window.__fb.db, 'users', state.user.uid, 'matches');
-    await window.__fb.addDoc(col, entry);
+    var ref = await window.__fb.addDoc(col, entry);
+    // Save the new doc's id before attempting cleanup, so a later re-record
+    // (or a failure below) always points at the latest correct entry rather
+    // than a stale one.
+    state.matchHistoryDocId = ref.id;
+    if(previousDocId){
+      try{
+        var previousRef = window.__fb.doc(window.__fb.db, 'users', state.user.uid, 'matches', previousDocId);
+        await window.__fb.deleteDoc(previousRef);
+      }catch(e){
+        console.error('Failed to remove the superseded match record:', e);
+      }
+    }
   }catch(e){
     console.error('Failed to save match to Firestore:', e);
   }
@@ -2394,6 +2415,7 @@ if (typeof module !== 'undefined' && module.exports) {
     computeAutoMOTM, matchResultText, computeLeaderboardStats,
     buildWormChartSVG, buildMatchPrintHTML, buildInningsPrintHTML,
     isGuest, openLeaderboard, closeGuestUpsell, render,
+    recordMatchToHistory, saveMatchEntryToFirestore,
     getState: function(){ return state; },
     setState: function(s){ state = s; }
   };

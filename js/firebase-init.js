@@ -5,7 +5,7 @@
     setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
   import {
-    getFirestore, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
+    getFirestore, collection, doc, addDoc, getDocs, deleteDoc, query, orderBy, limit
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -25,7 +25,7 @@
   window.__fb = {
     auth, db, GoogleAuthProvider, signInWithPopup, signInAnonymously,
     signOut, linkWithPopup, signInWithCredential, linkWithCredential,
-    collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
+    collection, doc, addDoc, getDocs, deleteDoc, query, orderBy, limit
   };
 
   setPersistence(auth, browserLocalPersistence)
