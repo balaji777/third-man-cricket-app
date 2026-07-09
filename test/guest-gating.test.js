@@ -79,3 +79,39 @@ test('the sign-in nudge never opens for a signed-in user', () => {
 
   assert.equal(app.getState().guestUpsellOpen, false);
 });
+
+function stateWithPlayedInnings(userOverrides) {
+  var s = baseMatchState(userOverrides);
+  s.data[1].batsmen[0].runs = 50;
+  s.data[1].batsmen[0].balls = 30;
+  s.data[1].startTime = Date.now() - 60000;
+  s.data[1].endTime = Date.now();
+  s.data[2].bowlers[0].balls = 24;
+  s.data[2].bowlers[0].wickets = 3;
+  s.manOfMatch = 'Alice';
+  return s;
+}
+
+test('the exported PDF drops the innings time line and Top performers for a guest', () => {
+  var s = stateWithPlayedInnings({ isAnonymous: true });
+  app.setState(s);
+
+  var html = app.buildMatchPrintHTML();
+
+  assert.doesNotMatch(html, /Started/, 'guest PDF should not show start/finish times');
+  assert.doesNotMatch(html, /Top performers/, 'guest PDF should not show the Top performers section');
+  assert.doesNotMatch(html, /Best batting/);
+  assert.match(html, /Player of the Match/, 'Player of the Match should still be shown to guests');
+});
+
+test('the exported PDF keeps the time line and Top performers for a signed-in user', () => {
+  var s = stateWithPlayedInnings({ isAnonymous: false });
+  app.setState(s);
+
+  var html = app.buildMatchPrintHTML();
+
+  assert.match(html, /Started/);
+  assert.match(html, /Top performers/);
+  assert.match(html, /Best batting/);
+  assert.match(html, /Player of the Match/);
+});

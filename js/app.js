@@ -1223,12 +1223,10 @@ function scorecardBlock(inn, inningsNum){
       html += '<div class="result-line"><span>'+escapeHtml(nonStrikerObj.name)+' &amp; '+escapeHtml(strikerObj.name)+' (unbeaten)</span><span>'+lastRuns+' ('+lastBalls+')</span></div>';
     }
   }
-  if(inningsNum){
+  if(inningsNum && !isGuest()){
     html += '<div class="util-row" style="margin-top:12px;">';
     html += '<button class="btn btn-secondary btn-small" onclick="exportInningsPDF('+inningsNum+')">Download PDF</button>';
-    if(!isGuest()){
-      html += '<button class="btn btn-secondary btn-small" onclick="shareInnings('+inningsNum+')">Share</button>';
-    }
+    html += '<button class="btn btn-secondary btn-small" onclick="shareInnings('+inningsNum+')">Share</button>';
     html += '</div>';
   }
   html += '</div>';
@@ -1867,12 +1865,12 @@ function renderLeaderboard(){
   return html;
 }
 
-function buildInningsPrintHTML(inningsNum){
+function buildInningsPrintHTML(inningsNum, omitTime){
   var inn = state.data[inningsNum];
   var scoreLine = inn.runs+'-'+inn.wickets+' ('+oversStr(inn.legalBalls)+')';
 
   var html = '<div class="rpt-band"><span>'+escapeHtml(inn.battingName)+'</span><span>'+scoreLine+'</span></div>';
-  if(inn.startTime){
+  if(inn.startTime && !omitTime){
     html += '<p style="font-size:10px;color:#666;margin:2px 0 6px;">Started '+formatTime12hr(inn.startTime);
     if(inn.endTime) html += ' &middot; finished '+formatTime12hr(inn.endTime)+' &middot; took '+formatDuration(inn.startTime, inn.endTime);
     html += '</p>';
@@ -1937,18 +1935,20 @@ function buildInningsPrintHTML(inningsNum){
 }
 
 function buildMatchPrintHTML(){
+  var guest = isGuest();
   var html = '<h1>'+escapeHtml(state.teamA)+' v/s '+escapeHtml(state.teamB)+'</h1>';
   html += '<div class="rpt-result">'+escapeHtml(matchResultText())+'.</div>';
-  html += buildInningsPrintHTML(1);
-  html += buildInningsPrintHTML(2);
+  html += buildInningsPrintHTML(1, guest);
+  html += buildInningsPrintHTML(2, guest);
 
-  var bb = bestBatting(), bwl = bestBowling();
-  if(bb || bwl || state.manOfMatch){
+  var bb = guest ? null : bestBatting();
+  var bwl = guest ? null : bestBowling();
+  if(bb || bwl){
     html += '<div class="rpt-section-title">Top performers</div>';
     if(bb) html += '<div class="rpt-note"><b>Best batting:</b> '+escapeHtml(bb.name)+' — '+bb.runs+' ('+bb.balls+') SR '+strikeRate(bb.runs,bb.balls)+'</div>';
     if(bwl) html += '<div class="rpt-note"><b>Best bowling:</b> '+escapeHtml(bwl.name)+' — '+bwl.wickets+'/'+bwl.runs+' ('+oversStr(bwl.balls)+' ov)</div>';
-    if(state.manOfMatch) html += '<div class="rpt-note"><b>Player of the Match:</b> '+escapeHtml(state.manOfMatch)+'</div>';
   }
+  if(state.manOfMatch) html += '<div class="rpt-note"><b>Player of the Match:</b> '+escapeHtml(state.manOfMatch)+'</div>';
   return html;
 }
 
@@ -2233,7 +2233,7 @@ function renderResult(){
   }
 
   var bb = bestBatting(), bwl = bestBowling();
-  if(bb || bwl){
+  if(!isGuest() && (bb || bwl)){
     html += '<div class="card">';
     html += '<div class="section-label" style="margin-top:0;">Top performers</div>';
     if(bb) html += '<div class="result-line"><span>Best batting</span><span>'+escapeHtml(bb.name)+' — '+bb.runs+' ('+bb.balls+') SR '+strikeRate(bb.runs,bb.balls)+'</span></div>';
@@ -2241,7 +2241,7 @@ function renderResult(){
     html += '</div>';
   }
 
-  if(inn1.overHistory.length>0 || inn2.overHistory.length>0){
+  if(!isGuest() && (inn1.overHistory.length>0 || inn2.overHistory.length>0)){
     html += '<div class="card">';
     html += '<div class="section-label" style="margin-top:0;">Run rate comparison</div>';
     html += buildWormChartSVG();
@@ -2349,7 +2349,7 @@ if (typeof module !== 'undefined' && module.exports) {
     addRuns, confirmExtra, finalizeWicket, checkOverEnd, checkInningsEnd,
     undo, undoLastBallAndResume, setNextBowler,
     computeAutoMOTM, matchResultText, computeLeaderboardStats,
-    buildWormChartSVG,
+    buildWormChartSVG, buildMatchPrintHTML, buildInningsPrintHTML,
     isGuest, openLeaderboard, closeGuestUpsell, render,
     getState: function(){ return state; },
     setState: function(s){ state = s; }
