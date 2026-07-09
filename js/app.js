@@ -1936,8 +1936,12 @@ function buildInningsPrintHTML(inningsNum, omitTime){
 
 function buildMatchPrintHTML(){
   var guest = isGuest();
+  var inn1 = state.data[1], inn2 = state.data[2];
   var html = '<h1>'+escapeHtml(state.teamA)+' v/s '+escapeHtml(state.teamB)+'</h1>';
   html += '<div class="rpt-result">'+escapeHtml(matchResultText())+'.</div>';
+  if(!guest && inn1.startTime && inn2.endTime){
+    html += '<p style="font-size:11px;color:#666;margin:2px 0 10px;">Started '+formatTime12hr(inn1.startTime)+' &middot; finished '+formatTime12hr(inn2.endTime)+' &middot; took '+formatDuration(inn1.startTime, inn2.endTime)+'</p>';
+  }
   html += buildInningsPrintHTML(1, guest);
   html += buildInningsPrintHTML(2, guest);
 
