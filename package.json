@@ -7,11 +7,20 @@
     "test": "node --test \"test/*.test.js\"",
     "lint": "eslint js",
     "format": "prettier --write \"js/**/*.js\" \"css/**/*.css\" \"*.html\"",
-    "format:check": "prettier --check \"js/**/*.js\" \"css/**/*.css\" \"*.html\""
+    "format:check": "prettier --check \"js/**/*.js\" \"css/**/*.css\" \"*.html\"",
+    "cap:build": "node scripts/build-capacitor-www.js",
+    "cap:sync": "npm run cap:build && npx cap sync"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@eslint/js": "^9.9.0",
     "eslint": "^9.9.0",
     "prettier": "^3.3.3"
+  },
+  "dependencies": {
+    "@capacitor-firebase/authentication": "^8.3.0"
   }
 }

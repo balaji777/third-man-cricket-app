@@ -1,7 +1,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
   import {
     getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously,
-    onAuthStateChanged, signOut, linkWithPopup, signInWithCredential,
+    onAuthStateChanged, signOut, linkWithPopup, signInWithCredential, linkWithCredential,
     setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
   import {
@@ -24,7 +24,7 @@
 
   window.__fb = {
     auth, db, GoogleAuthProvider, signInWithPopup, signInAnonymously,
-    signOut, linkWithPopup, signInWithCredential,
+    signOut, linkWithPopup, signInWithCredential, linkWithCredential,
     collection, addDoc, getDocs, deleteDoc, query, orderBy, limit
   };
 

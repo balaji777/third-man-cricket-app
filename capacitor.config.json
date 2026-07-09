@@ -1,0 +1,11 @@
+{
+  "appId": "com.thirdman.cricketscorer",
+  "appName": "Third Man",
+  "webDir": "www",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": ["google.com"]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Third Man</string>
+    <string name="title_activity_main">Third Man</string>
+    <string name="package_name">com.thirdman.cricketscorer</string>
+    <string name="custom_url_scheme">com.thirdman.cricketscorer</string>
+</resources>

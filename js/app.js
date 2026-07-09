@@ -844,8 +844,36 @@ function toggleTheme(){
   render();
 }
 
+function isNativePlatform(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+// Google blocks OAuth popups inside plain embedded WebViews, which is what
+// signInWithPopup/linkWithPopup need. On a native Capacitor build we get a
+// Google credential via the native Firebase Auth plugin (real native
+// Sign-In UI, not a WebView) instead, then hand that credential to the same
+// Firebase JS SDK session (window.__fb.auth) the rest of the app already
+// reads from -- onAuthStateChanged in firebase-init.js doesn't need to know
+// which path was used.
+function nativeGoogleCredential(){
+  return window.Capacitor.Plugins.FirebaseAuthentication.signInWithGoogle().then(function(result){
+    var idToken = result && result.credential && result.credential.idToken;
+    if(!idToken) throw new Error('No credential returned from native Google Sign-In.');
+    return window.__fb.GoogleAuthProvider.credential(idToken);
+  });
+}
+
 function signInWithGoogle(){
   state.authError = null;
+  if(isNativePlatform()){
+    nativeGoogleCredential().then(function(credential){
+      return window.__fb.signInWithCredential(window.__fb.auth, credential);
+    }).catch(function(err){
+      state.authError = (err && err.message) || 'Sign-in failed. Please try again.';
+      render();
+    });
+    return;
+  }
   try{
     var provider = new window.__fb.GoogleAuthProvider();
     window.__fb.signInWithPopup(window.__fb.auth, provider).catch(function(err){
@@ -870,11 +898,8 @@ function signOutUser(){
   window.__fb.signOut(window.__fb.auth);
 }
 
-function upgradeToGoogle(){
-  if(!state.user || !state.user.isAnonymous) return;
-  state.authError = null;
-  var provider = new window.__fb.GoogleAuthProvider();
-  window.__fb.linkWithPopup(state.user, provider).then(function(result){
+function handleLinkResult(promise){
+  promise.then(function(result){
     state.user = result.user;
     state.guestUpsellOpen = false;
     render();
@@ -889,9 +914,22 @@ function upgradeToGoogle(){
         return;
       }
     }
-    state.authError = err.message || 'Could not link Google account.';
+    state.authError = (err && err.message) || 'Could not link Google account.';
     render();
   });
+}
+
+function upgradeToGoogle(){
+  if(!state.user || !state.user.isAnonymous) return;
+  state.authError = null;
+  if(isNativePlatform()){
+    handleLinkResult(nativeGoogleCredential().then(function(credential){
+      return window.__fb.linkWithCredential(state.user, credential);
+    }));
+    return;
+  }
+  var provider = new window.__fb.GoogleAuthProvider();
+  handleLinkResult(window.__fb.linkWithPopup(state.user, provider));
 }
 
 function renderAuthLoading(){
@@ -922,6 +960,7 @@ function renderLogin(){
   if(state.authError){
     html += '<p style="color:var(--red);font-size:12px;margin-top:16px;max-width:280px;">'+escapeHtml(state.authError)+'</p>';
   }
+  html += '<a href="privacy.html" target="_blank" rel="noopener" style="color:var(--chalk-dim);font-size:11px;margin-top:24px;">Privacy Policy</a>';
   html += '</div>';
   return html;
 }

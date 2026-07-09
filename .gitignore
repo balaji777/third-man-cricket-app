@@ -4,3 +4,10 @@ firebase-debug.log
 *.log
 .DS_Store
 Thumbs.db
+
+# Capacitor
+www/
+*.keystore
+*.jks
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
