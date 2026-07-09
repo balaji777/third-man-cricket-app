@@ -21,7 +21,8 @@ function freshMatch(){
     soNamesPopup:false, soExtraPopup:null, superOverTiedFinal:false,
     matchRecorded:false, previousScreen:null, leaderboardTab:'batting',
     user:null, authReady:false, authError:null, matchHistoryCache:null,
-    showInningsCard:{1:false, 2:false}
+    showInningsCard:{1:false, 2:false},
+    guestUpsellOpen:false, guestUpsellSeen:false
   };
 }
 state = freshMatch();
@@ -54,6 +55,10 @@ function render(){
   var app = document.getElementById('app');
   app.className = state.theme==='light' ? 'light' : '';
   if(state.screen==='result') recordMatchToHistory();
+  if(state.screen==='result' && isGuest() && !state.guestUpsellSeen){
+    state.guestUpsellSeen = true;
+    state.guestUpsellOpen = true;
+  }
   if(state.screen==='setup') app.innerHTML = renderSetup();
   else if(state.screen==='scoring') app.innerHTML = renderScoring();
   else if(state.screen==='break') app.innerHTML = renderBreak();
@@ -95,6 +100,7 @@ function loadMatchState(){
     state.tossOpen = false;
     state.toastMessage = null;
     state.resetConfirmOpen = false;
+    state.guestUpsellOpen = false;
     state.user = null;
     state.authReady = false;
     state.authError = null;
@@ -142,7 +148,9 @@ function renderSetup(){
   var html = topbar();
   html += '<div class="screen">';
   html += '<h2 style="margin-bottom:18px;">New match setup</h2>';
-  html += '<button class="btn btn-secondary btn-small" style="width:100%;margin-bottom:16px;" onclick="openLeaderboard()">View Leaderboard</button>';
+  if(!isGuest()){
+    html += '<button class="btn btn-secondary btn-small" style="width:100%;margin-bottom:16px;" onclick="openLeaderboard()">View Leaderboard</button>';
+  }
   if(state.user && state.user.isAnonymous){
     html += '<div class="card" style="margin-bottom:16px;text-align:center;">';
     html += '<p class="muted" style="margin:0 0 10px;">Playing as guest — sign in to save your stats across devices.</p>';
@@ -305,6 +313,8 @@ function confirmOpeners(){
 }
 
 function curInnings(){ return state.data[state.inningsNum]; }
+
+function isGuest(){ return !!(state.user && state.user.isAnonymous); }
 
 function snapshot(){
   var inn = curInnings();
@@ -866,6 +876,7 @@ function upgradeToGoogle(){
   var provider = new window.__fb.GoogleAuthProvider();
   window.__fb.linkWithPopup(state.user, provider).then(function(result){
     state.user = result.user;
+    state.guestUpsellOpen = false;
     render();
   }).catch(function(err){
     if(err && err.code==='auth/credential-already-in-use'){
@@ -1215,7 +1226,9 @@ function scorecardBlock(inn, inningsNum){
   if(inningsNum){
     html += '<div class="util-row" style="margin-top:12px;">';
     html += '<button class="btn btn-secondary btn-small" onclick="exportInningsPDF('+inningsNum+')">Download PDF</button>';
-    html += '<button class="btn btn-secondary btn-small" onclick="shareInnings('+inningsNum+')">Share</button>';
+    if(!isGuest()){
+      html += '<button class="btn btn-secondary btn-small" onclick="shareInnings('+inningsNum+')">Share</button>';
+    }
     html += '</div>';
   }
   html += '</div>';
@@ -1748,6 +1761,7 @@ function computeLeaderboardStats(history){
 }
 
 function openLeaderboard(){
+  if(isGuest()) return;
   state.previousScreen = state.screen;
   state.screen = 'leaderboard';
   if(state.matchHistoryCache===null){
@@ -2245,12 +2259,14 @@ function renderResult(){
   }
 
   html += '<div class="util-row" style="margin-top:0;">';
-  html += '<button class="btn btn-secondary btn-small" onclick="shareScorecard()">Share scorecard</button>';
+  if(!isGuest()) html += '<button class="btn btn-secondary btn-small" onclick="shareScorecard()">Share scorecard</button>';
   html += '<button class="btn btn-secondary btn-small" onclick="exportScorecardPDF()">Export PDF</button>';
-  html += '<button class="btn btn-secondary btn-small" onclick="shareScorecardImage()">Share image</button>';
+  if(!isGuest()) html += '<button class="btn btn-secondary btn-small" onclick="shareScorecardImage()">Share image</button>';
   html += '</div>';
   html += '<button class="btn" onclick="newMatch()">New match</button>';
-  html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;width:100%;" onclick="openLeaderboard()">View Leaderboard</button>';
+  if(!isGuest()){
+    html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;width:100%;" onclick="openLeaderboard()">View Leaderboard</button>';
+  }
   if(inn2.history.length>0 && !state.superOver){
     html += '<button class="btn btn-secondary btn-small" style="margin-top:8px;width:100%;" onclick="undoLastBallAndResume()">Undo last ball (fix a mistake)</button>';
   }
@@ -2260,7 +2276,26 @@ function renderResult(){
   if(state.toastMessage){
     html += '<div class="toast">'+escapeHtml(state.toastMessage)+'</div>';
   }
+  if(state.guestUpsellOpen) html += renderGuestUpsellPopup();
   return html;
+}
+
+function renderGuestUpsellPopup(){
+  var html = '<div class="toss-overlay"><div class="toss-modal">';
+  html += '<h3 style="margin-bottom:6px;">Nice match!</h3>';
+  html += '<p class="muted" style="margin:0 0 14px;">Sign in with Google to save this match for good, unlock the leaderboard, and share your scorecard.</p>';
+  html += '<button class="btn" onclick="upgradeToGoogle()">Sign in with Google</button>';
+  html += '<button class="btn btn-secondary btn-small" style="margin-top:10px;width:100%;" onclick="closeGuestUpsell()">Continue as Guest</button>';
+  if(state.authError){
+    html += '<p style="color:var(--red);font-size:12px;margin-top:14px;">'+escapeHtml(state.authError)+'</p>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function closeGuestUpsell(){
+  state.guestUpsellOpen = false;
+  render();
 }
 
 function escapeHtml(s){
@@ -2315,6 +2350,7 @@ if (typeof module !== 'undefined' && module.exports) {
     undo, undoLastBallAndResume, setNextBowler,
     computeAutoMOTM, matchResultText, computeLeaderboardStats,
     buildWormChartSVG,
+    isGuest, openLeaderboard, closeGuestUpsell, render,
     getState: function(){ return state; },
     setState: function(s){ state = s; }
   };
