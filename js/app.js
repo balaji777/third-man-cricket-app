@@ -1696,7 +1696,13 @@ function canSyncLiveMatch(){
 
 // Only the fields needed to resume scoring elsewhere -- excludes popups,
 // toasts, and other per-device UI state (mirrors what loadMatchState()
-// already strips out when restoring from localStorage).
+// already strips out when restoring from localStorage). data/superOver are
+// serialized to JSON strings rather than written as-is: overHistory is an
+// array of per-over arrays (inn.overHistory.push(inn.thisOver)), and
+// Firestore rejects any array nested directly inside another array. We
+// never query into these fields -- always read/write the whole match -- so
+// a JSON blob is simpler and safer than reshaping the live scoring model
+// (or every future field added to it) to satisfy Firestore's array rules.
 function liveMatchSnapshot(){
   return {
     matchId: state.matchId,
@@ -1706,10 +1712,10 @@ function liveMatchSnapshot(){
     battingFirst: state.battingFirst,
     tossWinner: state.tossWinner, tossChoice: state.tossChoice,
     inningsNum: state.inningsNum, target: state.target,
-    data: state.data,
+    dataJson: JSON.stringify(state.data),
     powerplayOvers: state.powerplayOvers,
     manOfMatch: state.manOfMatch,
-    superOver: state.superOver,
+    superOverJson: state.superOver ? JSON.stringify(state.superOver) : null,
     superOverTiedFinal: state.superOverTiedFinal,
     updatedAt: window.__fb.serverTimestamp()
   };
@@ -1717,10 +1723,17 @@ function liveMatchSnapshot(){
 
 function pushLiveMatchToCloud(){
   if(!canSyncLiveMatch()) return;
-  var ref = window.__fb.doc(window.__fb.db, 'users', state.user.uid, 'liveMatches', state.matchId);
-  window.__fb.setDoc(ref, liveMatchSnapshot()).catch(function(e){
+  try{
+    var ref = window.__fb.doc(window.__fb.db, 'users', state.user.uid, 'liveMatches', state.matchId);
+    // setDoc() validates its data argument synchronously and can throw
+    // immediately (e.g. bad data shape) rather than only rejecting the
+    // returned promise (e.g. network/permission failures) -- catch both.
+    window.__fb.setDoc(ref, liveMatchSnapshot()).catch(function(e){
+      console.error('Failed to sync live match:', e);
+    });
+  }catch(e){
     console.error('Failed to sync live match:', e);
-  });
+  }
 }
 
 var liveSyncTimer = null;

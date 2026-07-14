@@ -108,6 +108,50 @@ test('pushLiveMatchToCloud writes the resumable fields, not per-device UI state'
   assert.equal(saved.playerPopup, undefined, 'per-device UI state must not be synced');
 });
 
+// Regression: overHistory is an array of per-over arrays
+// (inn.overHistory.push(inn.thisOver)), and Firestore rejects any array
+// nested directly inside another array with "Nested arrays are not
+// supported". liveMatchSnapshot() must serialize data/superOver to JSON
+// strings rather than handing Firestore the raw nested-array shape.
+test('pushLiveMatchToCloud serializes innings data (with its nested overHistory arrays) as JSON', () => {
+  var fakeFb = makeFakeFirestore();
+  global.window.__fb = fakeFb;
+  var s = baseState();
+  s.matchId = 'm1';
+  s.screen = 'scoring';
+  s.data[1] = app.freshInnings('Team A', 'Team B');
+  s.data[1].overHistory = [
+    ['1', '4', 'W', '0', '0', '2'],
+    ['wd1', '6', '0', '0', '0', '0']
+  ];
+  app.setState(s);
+
+  assert.doesNotThrow(function () { app.pushLiveMatchToCloud(); });
+
+  var saved = fakeFb.docs.m1;
+  assert.equal(typeof saved.dataJson, 'string');
+  var roundTripped = JSON.parse(saved.dataJson);
+  assert.deepEqual(roundTripped[1].overHistory, s.data[1].overHistory);
+});
+
+// Regression: setDoc() validates its argument synchronously and throws
+// immediately for bad data shapes (as opposed to network/permission
+// failures, which only reject the returned promise) -- pushLiveMatchToCloud
+// must not let that escape as an uncaught exception.
+test('pushLiveMatchToCloud does not throw if setDoc rejects the data synchronously', () => {
+  var fakeFb = makeFakeFirestore();
+  fakeFb.setDoc = function () {
+    throw new Error('Function setDoc() called with invalid data.');
+  };
+  global.window.__fb = fakeFb;
+  var s = baseState();
+  s.matchId = 'm1';
+  s.screen = 'scoring';
+  app.setState(s);
+
+  assert.doesNotThrow(function () { app.pushLiveMatchToCloud(); });
+});
+
 test('deleteLiveMatchDoc removes the synced document', () => {
   var fakeFb = makeFakeFirestore();
   global.window.__fb = fakeFb;
