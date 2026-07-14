@@ -19,7 +19,7 @@ function freshMatch(){
     resetConfirmOpen:false,
     superOver:null,
     soNamesPopup:false, soExtraPopup:null, superOverTiedFinal:false,
-    matchRecorded:false, matchHistoryDocId:null, previousScreen:null, leaderboardTab:'batting',
+    matchRecorded:false, matchHistoryDocId:null, matchId:null, previousScreen:null, leaderboardTab:'batting',
     user:null, authReady:false, authError:null, matchHistoryCache:null,
     showInningsCard:{1:false, 2:false},
     guestUpsellOpen:false, guestUpsellSeen:false
@@ -75,6 +75,7 @@ function render(){
   }
   lastRenderedScreen = state.screen;
   saveMatchState();
+  scheduleLiveMatchSync();
 }
 
 function saveMatchState(){
@@ -285,6 +286,10 @@ function startMatch(){
   state.data[1] = freshInnings(battingName, bowlingName);
   state.inningsNum = 1;
   state.screen = 'scoring';
+  if(state.user && !isGuest() && !state.matchId){
+    var col = window.__fb.collection(window.__fb.db, 'users', state.user.uid, 'liveMatches');
+    state.matchId = window.__fb.doc(col).id;
+  }
   openOpenersPopup();
 }
 
@@ -825,6 +830,8 @@ function newMatch(){
   var keepUser = state.user;
   var keepAuthReady = state.authReady;
   var keepHistoryCache = state.matchHistoryCache;
+  if(liveSyncTimer){ clearTimeout(liveSyncTimer); liveSyncTimer = null; }
+  deleteLiveMatchDoc();
   clearSavedMatch();
   state = freshMatch();
   state.theme = keepTheme;
@@ -1677,9 +1684,75 @@ function computeMatchWinner(){
   return inn1.battingName;
 }
 
+// Screens a live match can be resumed from on another device. Anything
+// outside this set (setup, result, leaderboard, auth, ...) has nothing
+// worth syncing -- either there's no match yet, or it's already finalized
+// in match history.
+var LIVE_SYNC_SCREENS = {scoring:true, break:true, superOverIntro:true, superOverScoring:true, superOverTiedAgain:true};
+
+function canSyncLiveMatch(){
+  return !!(state.user && !isGuest() && state.matchId && LIVE_SYNC_SCREENS[state.screen]);
+}
+
+// Only the fields needed to resume scoring elsewhere -- excludes popups,
+// toasts, and other per-device UI state (mirrors what loadMatchState()
+// already strips out when restoring from localStorage).
+function liveMatchSnapshot(){
+  return {
+    matchId: state.matchId,
+    screen: state.screen,
+    teamA: state.teamA, teamB: state.teamB,
+    overs: state.overs, wicketsLimit: state.wicketsLimit,
+    battingFirst: state.battingFirst,
+    tossWinner: state.tossWinner, tossChoice: state.tossChoice,
+    inningsNum: state.inningsNum, target: state.target,
+    data: state.data,
+    powerplayOvers: state.powerplayOvers,
+    manOfMatch: state.manOfMatch,
+    superOver: state.superOver,
+    superOverTiedFinal: state.superOverTiedFinal,
+    updatedAt: window.__fb.serverTimestamp()
+  };
+}
+
+function pushLiveMatchToCloud(){
+  if(!canSyncLiveMatch()) return;
+  var ref = window.__fb.doc(window.__fb.db, 'users', state.user.uid, 'liveMatches', state.matchId);
+  window.__fb.setDoc(ref, liveMatchSnapshot()).catch(function(e){
+    console.error('Failed to sync live match:', e);
+  });
+}
+
+var liveSyncTimer = null;
+
+// Debounced so a burst of renders (popup open/close, undo, etc.) collapses
+// into one write instead of one per render -- Firestore's offline queue
+// (see firebase-init.js) already handles the actual network retry, so this
+// is purely about write volume.
+function scheduleLiveMatchSync(){
+  if(!canSyncLiveMatch()) return;
+  if(liveSyncTimer) clearTimeout(liveSyncTimer);
+  liveSyncTimer = setTimeout(function(){
+    liveSyncTimer = null;
+    pushLiveMatchToCloud();
+  }, 2500);
+  if(liveSyncTimer && typeof liveSyncTimer.unref === 'function') liveSyncTimer.unref();
+}
+
+function deleteLiveMatchDoc(){
+  if(!(state.user && state.matchId)) return;
+  var ref = window.__fb.doc(window.__fb.db, 'users', state.user.uid, 'liveMatches', state.matchId);
+  window.__fb.deleteDoc(ref).catch(function(e){
+    console.error('Failed to remove synced live match:', e);
+  });
+}
+
 function recordMatchToHistory(){
   if(state.matchRecorded) return;
   state.matchRecorded = true;
+  if(liveSyncTimer){ clearTimeout(liveSyncTimer); liveSyncTimer = null; }
+  deleteLiveMatchDoc();
+  state.matchId = null;
   var inn1 = state.data[1], inn2 = state.data[2];
   function packInnings(inn){
     return {
@@ -1711,16 +1784,30 @@ function recordMatchToHistory(){
   saveMatchEntryToFirestore(entry);
 }
 
+function clearToastAfter(ms){
+  var t = setTimeout(function(){ state.toastMessage = null; render(); }, ms);
+  // In Node (tests), an unref'd timer won't hold the process open; browsers'
+  // setTimeout return value has no .unref, so this is a no-op there.
+  if(t && typeof t.unref === 'function') t.unref();
+}
+
 async function saveMatchEntryToFirestore(entry){
   if(!state.user) return;
   var previousDocId = state.matchHistoryDocId;
   try{
     var col = window.__fb.collection(window.__fb.db, 'users', state.user.uid, 'matches');
-    var ref = await window.__fb.addDoc(col, entry);
-    // Save the new doc's id before attempting cleanup, so a later re-record
-    // (or a failure below) always points at the latest correct entry rather
-    // than a stale one.
+    // Client-generated id (no network round trip needed), so the match has
+    // an id to reference immediately even if the write below is still
+    // queued offline -- addDoc's server-assigned id would leave
+    // matchHistoryDocId unset until the write actually reaches Firestore.
+    var ref = window.__fb.doc(col);
     state.matchHistoryDocId = ref.id;
+    var wasOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    if(wasOffline){
+      state.toastMessage = "Saved on this device — will sync once you're back online.";
+      clearToastAfter(3000);
+    }
+    await window.__fb.setDoc(ref, entry);
     if(previousDocId){
       try{
         var previousRef = window.__fb.doc(window.__fb.db, 'users', state.user.uid, 'matches', previousDocId);
@@ -1731,6 +1818,9 @@ async function saveMatchEntryToFirestore(entry){
     }
   }catch(e){
     console.error('Failed to save match to Firestore:', e);
+    state.toastMessage = "Couldn't sync this match — it's saved on this device and will retry automatically.";
+    render();
+    clearToastAfter(4000);
   }
 }
 
@@ -2416,6 +2506,8 @@ if (typeof module !== 'undefined' && module.exports) {
     buildWormChartSVG, buildMatchPrintHTML, buildInningsPrintHTML,
     isGuest, openLeaderboard, closeGuestUpsell, render,
     recordMatchToHistory, saveMatchEntryToFirestore,
+    startMatch, newMatch,
+    canSyncLiveMatch, liveMatchSnapshot, pushLiveMatchToCloud, deleteLiveMatchDoc,
     getState: function(){ return state; },
     setState: function(s){ state = s; }
   };

@@ -20,16 +20,20 @@ function makeFakeFirestore() {
     collection: function () {
       return {};
     },
-    doc: function (_db, _users, _uid, _matches, id) {
-      return { __id: id };
+    // Mirrors the real SDK's two overloads: doc(collectionRef) generates a
+    // fresh id, doc(db, 'users', uid, 'matches', id) looks up an existing one.
+    doc: function (colOrDb, _users, _uid, _matches, id) {
+      if (arguments.length === 1) {
+        id = 'doc' + nextId++;
+      }
+      return { id: id };
     },
-    addDoc: function (_col, data) {
-      var id = 'doc' + nextId++;
-      docs[id] = data;
-      return Promise.resolve({ id: id });
+    setDoc: function (ref, data) {
+      docs[ref.id] = data;
+      return Promise.resolve();
     },
     deleteDoc: function (ref) {
-      delete docs[ref.__id];
+      delete docs[ref.id];
       return Promise.resolve();
     }
   };

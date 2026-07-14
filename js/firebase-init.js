@@ -5,7 +5,8 @@
     setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
   import {
-    getFirestore, collection, doc, addDoc, getDocs, deleteDoc, query, orderBy, limit
+    getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+    collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, serverTimestamp
   } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -20,12 +21,26 @@
 
   const fbApp = initializeApp(firebaseConfig);
   const auth = getAuth(fbApp);
-  const db = getFirestore(fbApp);
+
+  // Persistent (IndexedDB-backed) local cache so writes made while offline
+  // queue on-device and sync automatically on reconnect, instead of just
+  // failing. Falls back to the default in-memory cache in environments
+  // without IndexedDB (e.g. private browsing in old Safari).
+  let db;
+  try {
+    db = initializeFirestore(fbApp, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+    console.log('[firestore] offline persistence: enabled (multi-tab)');
+  } catch (err) {
+    console.warn('[firestore] offline persistence unavailable, falling back to in-memory cache:', err);
+    db = getFirestore(fbApp);
+  }
 
   window.__fb = {
     auth, db, GoogleAuthProvider, signInWithPopup, signInAnonymously,
     signOut, linkWithPopup, signInWithCredential, linkWithCredential,
-    collection, doc, addDoc, getDocs, deleteDoc, query, orderBy, limit
+    collection, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, serverTimestamp
   };
 
   setPersistence(auth, browserLocalPersistence)
