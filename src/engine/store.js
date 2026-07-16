@@ -10,10 +10,17 @@ const { getState, setState } = require('./state');
 
 const listeners = new Set();
 let persistHook = null;
+let clearHook = null;
 
-// Wired up in M8 (AsyncStorage persistence) -- a no-op until then.
+// Wired up in App.js (M8, AsyncStorage persistence). Kept as hooks rather
+// than a direct require of the persistence module so engine/* stays free of
+// any RN/AsyncStorage dependency and keeps running under plain `node --test`.
 function setPersistHook(fn) {
   persistHook = fn;
+}
+
+function setClearHook(fn) {
+  clearHook = fn;
 }
 
 function commit() {
@@ -22,9 +29,15 @@ function commit() {
   listeners.forEach(fn => fn());
 }
 
+// Called by newMatch() -- the source's equivalent always clears the saved
+// match blob on a fresh match, regardless of which screen triggered it.
+function triggerClear() {
+  if (clearHook) clearHook();
+}
+
 function subscribe(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
 
-module.exports = { commit, subscribe, setPersistHook };
+module.exports = { commit, subscribe, setPersistHook, setClearHook, triggerClear };

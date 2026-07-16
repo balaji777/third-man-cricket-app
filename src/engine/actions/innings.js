@@ -6,7 +6,7 @@
 // existing "Match tied" branch needs no changes, only this routing does.
 const { getState, setState, curInnings, snapshot, freshInnings, freshMatch } = require('../state');
 const { computeAutoMOTM } = require('../helpers');
-const { commit } = require('../store');
+const { commit, triggerClear } = require('../store');
 const { openOpenersPopup } = require('./setup');
 
 function checkInningsEnd() {
@@ -83,6 +83,7 @@ function newMatch() {
   const keepUser = state.user;
   const keepAuthReady = state.authReady;
   const keepHistoryCache = state.matchHistoryCache;
+  triggerClear();
   const fresh = freshMatch();
   fresh.theme = keepTheme;
   fresh.user = keepUser;
