@@ -4,6 +4,7 @@ import { useEngine } from '../engine/EngineProvider';
 import { curInnings } from '../engine/state';
 import { undo } from '../engine/actions/scoring';
 import { endInningsEarly, newMatch } from '../engine/actions/innings';
+import { openDismissalPopup } from '../engine/actions/dismissal';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
 import Topbar from '../components/Topbar';
@@ -19,6 +20,7 @@ import ExtrasRow from '../components/ExtrasRow';
 import ExtraPopup from '../popups/ExtraPopup';
 import PlayerPopup from '../popups/PlayerPopup';
 import OpenersPopup from '../popups/OpenersPopup';
+import DismissalPopup from '../popups/DismissalPopup';
 
 export default function ScoringScreen() {
   const state = useEngine();
@@ -44,6 +46,8 @@ export default function ScoringScreen() {
         <Text style={[styles.sectionLabel, { color: colors.chalk }]}>Extras</Text>
         <ExtrasRow />
 
+        <Button label="Wicket" variant="red" onPress={openDismissalPopup} />
+
         <View style={styles.utilRow}>
           <Button label="Undo" variant="panel" style={styles.utilBtn} onPress={undo} />
           <Button
@@ -58,6 +62,7 @@ export default function ScoringScreen() {
       <ExtraPopup />
       <PlayerPopup />
       <OpenersPopup />
+      <DismissalPopup />
     </View>
   );
 }
