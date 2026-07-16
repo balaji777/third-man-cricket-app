@@ -5,15 +5,19 @@ import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
 import SetupScreen from './SetupScreen';
 import ScoringScreen from './ScoringScreen';
+import BreakScreen from './BreakScreen';
+import ResultScreen from './ResultScreen';
 
 // Mirrors the source render()'s if/else-if dispatch on state.screen. Screens
-// not yet built (break/result -- M7) fall back to a placeholder so
-// navigating past them is verifiable before they exist.
+// out of Phase 1 scope (super overs, leaderboard, auth) fall back to a
+// placeholder so navigating past them is verifiable before they exist.
 export default function ScreenSwitch() {
   const state = useEngine();
 
   if (state.screen === 'setup') return <SetupScreen />;
   if (state.screen === 'scoring') return <ScoringScreen />;
+  if (state.screen === 'break') return <BreakScreen />;
+  if (state.screen === 'result') return <ResultScreen />;
 
   return <UnbuiltScreenPlaceholder screen={state.screen} />;
 }

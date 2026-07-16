@@ -71,6 +71,12 @@ function startSecondInnings() {
   openOpenersPopup();
 }
 
+function toggleInningsCard(n) {
+  const state = getState();
+  state.showInningsCard[n] = !state.showInningsCard[n];
+  commit();
+}
+
 function newMatch() {
   const state = getState();
   const keepTheme = state.theme;
@@ -91,5 +97,6 @@ module.exports = {
   updateWicketsLimit,
   endInningsEarly,
   startSecondInnings,
+  toggleInningsCard,
   newMatch,
 };

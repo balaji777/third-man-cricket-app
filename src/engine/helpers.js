@@ -20,6 +20,31 @@ function economyRate(bw) {
   return bw.runs / (bw.balls / 6);
 }
 
+function extrasTotal(inn) {
+  return inn.extras.wd + inn.extras.nb + inn.extras.b + inn.extras.lb;
+}
+
+function formatTime12hr(ms) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  const mStr = m < 10 ? '0' + m : '' + m;
+  return h + ':' + mStr + ' ' + ampm;
+}
+
+function formatDuration(startMs, endMs) {
+  if (!startMs || !endMs) return '';
+  const mins = Math.round((endMs - startMs) / 60000);
+  if (mins < 60) return mins + ' min';
+  const h = Math.floor(mins / 60),
+    m = mins % 60;
+  return h + 'h ' + m + 'm';
+}
+
 function currentBowler(inn) {
   return inn.bowlers[inn.bowlerIdx];
 }
@@ -186,6 +211,9 @@ module.exports = {
   rate,
   strikeRate,
   economyRate,
+  extrasTotal,
+  formatTime12hr,
+  formatDuration,
   currentBowler,
   striker,
   nonStriker,
