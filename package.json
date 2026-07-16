@@ -2,25 +2,36 @@
   "name": "third-man-cricket-scorer",
   "version": "1.0.0",
   "private": true,
-  "description": "Ball-by-ball cricket scoring PWA with scorecards, dismissal tracking, powerplay rules, PDF export, and Firebase-backed match history and leaderboard.",
+  "description": "Ball-by-ball cricket scoring React Native app: scorecards, dismissal tracking, powerplay rules, and Firebase-backed auth.",
   "scripts": {
-    "test": "node --test \"test/*.test.js\"",
-    "lint": "eslint js",
-    "format": "prettier --write \"js/**/*.js\" \"css/**/*.css\" \"*.html\"",
-    "format:check": "prettier --check \"js/**/*.js\" \"css/**/*.css\" \"*.html\"",
-    "cap:build": "node scripts/build-capacitor-www.js",
-    "cap:sync": "npm run cap:build && npx cap sync"
-  },
-  "devDependencies": {
-    "@capacitor/android": "^8.4.1",
-    "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
-    "@capacitor/ios": "^8.4.1",
-    "@eslint/js": "^9.9.0",
-    "eslint": "^9.9.0",
-    "prettier": "^3.3.3"
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "lint": "eslint .",
+    "start": "react-native start",
+    "test": "jest",
+    "test:engine": "node --test \"src/engine/__tests__/*.test.js\""
   },
   "dependencies": {
-    "@capacitor-firebase/authentication": "^8.3.0"
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "^5.5.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "20.1.0",
+    "@react-native-community/cli-platform-android": "20.1.0",
+    "@react-native-community/cli-platform-ios": "20.1.0",
+    "@react-native/babel-preset": "0.86.0",
+    "@react-native/eslint-config": "0.86.0",
+    "@react-native/metro-config": "0.86.0",
+    "eslint": "^8.19.0",
+    "jest": "^29.6.3",
+    "prettier": "2.8.8",
+    "react-test-renderer": "19.2.3"
+  },
+  "engines": {
+    "node": ">= 22.11.0"
   }
 }
