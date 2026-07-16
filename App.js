@@ -8,9 +8,11 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar, StyleSheet, View } from 'react-native';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { EngineProvider } from './src/engine/EngineProvider';
-import { setState } from './src/engine/state';
+import { getState, setState } from './src/engine/state';
 import { setPersistHook, setClearHook } from './src/engine/store';
 import { loadMatchState, saveMatchState, clearSavedMatch } from './src/persistence/matchStorage';
+import { configureGoogleSignIn } from './src/auth/googleSignIn';
+import { initAuthListener } from './src/auth/firebaseAuth';
 import ScreenSwitch from './src/screens/ScreenSwitch';
 
 function AppContent() {
@@ -38,8 +40,17 @@ function App() {
   useEffect(() => {
     setPersistHook(saveMatchState);
     setClearHook(clearSavedMatch);
+    configureGoogleSignIn();
+
     loadMatchState().then(loaded => {
       if (loaded) setState(loaded);
+      // Screens can only be reached once signed in, so gate behind
+      // 'authLoading' regardless of what was resumed -- pendingResumeScreen
+      // remembers where to send the user once auth resolves, mirroring the
+      // source's module-level pendingResumeScreen variable.
+      const pendingResumeScreen = loaded ? loaded.screen : null;
+      getState().screen = 'authLoading';
+      initAuthListener(pendingResumeScreen);
       setReady(true);
     });
   }, []);

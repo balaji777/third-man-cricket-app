@@ -7,13 +7,17 @@ import SetupScreen from './SetupScreen';
 import ScoringScreen from './ScoringScreen';
 import BreakScreen from './BreakScreen';
 import ResultScreen from './ResultScreen';
+import AuthLoadingScreen from './AuthLoadingScreen';
+import LoginScreen from './LoginScreen';
 
 // Mirrors the source render()'s if/else-if dispatch on state.screen. Screens
-// out of Phase 1 scope (super overs, leaderboard, auth) fall back to a
+// out of Phase 1 scope (super overs, leaderboard) fall back to a
 // placeholder so navigating past them is verifiable before they exist.
 export default function ScreenSwitch() {
   const state = useEngine();
 
+  if (state.screen === 'authLoading') return <AuthLoadingScreen />;
+  if (state.screen === 'login') return <LoginScreen />;
   if (state.screen === 'setup') return <SetupScreen />;
   if (state.screen === 'scoring') return <ScoringScreen />;
   if (state.screen === 'break') return <BreakScreen />;

@@ -11,6 +11,8 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Chip from '../components/Chip';
 import TossPopup from '../popups/TossPopup';
+import { signOutUser } from '../auth/firebaseAuth';
+import { upgradeToGoogle } from '../auth/googleSignIn';
 
 const OVERS_PRESETS = [5, 10, 20, 50];
 
@@ -28,9 +30,21 @@ export default function SetupScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Topbar showReset={false} />
+      <Topbar showReset={false} showSignOut={!!state.user} onSignOut={signOutUser} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[styles.h2, { color: colors.floodlight }]}>New match setup</Text>
+
+        {state.user && state.user.isAnonymous ? (
+          <Card style={styles.guestCard}>
+            <Text style={[styles.muted, { color: colors.chalk }]}>
+              Playing as guest — sign in to save your stats across devices.
+            </Text>
+            <Button label="Sign in with Google" variant="panel" onPress={upgradeToGoogle} />
+            {state.authError ? (
+              <Text style={[styles.guestError, { color: colors.red }]}>{state.authError}</Text>
+            ) : null}
+          </Card>
+        ) : null}
 
         <Field label="Team A name" colors={colors}>
           <TextInput
@@ -177,6 +191,15 @@ const styles = StyleSheet.create({
   tossCard: {
     alignItems: 'center',
     gap: 10,
+  },
+  guestCard: {
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  guestError: {
+    fontFamily,
+    fontSize: 12,
   },
   muted: {
     fontFamily,

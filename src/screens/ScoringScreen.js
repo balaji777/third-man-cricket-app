@@ -21,6 +21,7 @@ import ExtraPopup from '../popups/ExtraPopup';
 import PlayerPopup from '../popups/PlayerPopup';
 import OpenersPopup from '../popups/OpenersPopup';
 import DismissalPopup from '../popups/DismissalPopup';
+import { signOutUser } from '../auth/firebaseAuth';
 
 export default function ScoringScreen() {
   const state = useEngine();
@@ -29,7 +30,12 @@ export default function ScoringScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Topbar showReset onReset={newMatch} />
+      <Topbar
+        showReset
+        onReset={newMatch}
+        showSignOut={!!state.user}
+        onSignOut={signOutUser}
+      />
       <ScrollView contentContainerStyle={styles.scroll}>
         <ScoreBoard state={state} inn={inn} />
         <PartnershipLine inn={inn} />

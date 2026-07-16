@@ -10,6 +10,7 @@ import Topbar from '../components/Topbar';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import InningsCompactLine from '../components/InningsCompactLine';
+import { signOutUser } from '../auth/firebaseAuth';
 
 // Ported from the source's renderResult(). Deferred to later phases (not
 // rendered here): super-over summary card, Top performers, run-rate worm
@@ -22,7 +23,12 @@ export default function ResultScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Topbar showReset />
+      <Topbar
+        showReset
+        onReset={newMatch}
+        showSignOut={!!state.user}
+        onSignOut={signOutUser}
+      />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[styles.h2, { color: colors.floodlight }]}>Match result</Text>
         <Text style={[styles.winner, { color: colors.amber }]}>{matchResultText()}</Text>

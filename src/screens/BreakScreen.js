@@ -3,11 +3,12 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEngine } from '../engine/EngineProvider';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
-import { startSecondInnings } from '../engine/actions/innings';
+import { startSecondInnings, newMatch } from '../engine/actions/innings';
 import { undoLastBallAndResume } from '../engine/actions/scoring';
 import Topbar from '../components/Topbar';
 import Button from '../components/Button';
 import ScorecardBlock from '../components/ScorecardBlock';
+import { signOutUser } from '../auth/firebaseAuth';
 
 export default function BreakScreen() {
   const state = useEngine();
@@ -16,7 +17,12 @@ export default function BreakScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Topbar showReset />
+      <Topbar
+        showReset
+        onReset={newMatch}
+        showSignOut={!!state.user}
+        onSignOut={signOutUser}
+      />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[styles.h2, { color: colors.floodlight }]}>Innings break</Text>
         <ScorecardBlock inn={inn} />
