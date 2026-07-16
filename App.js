@@ -9,7 +9,6 @@ import { StatusBar, StyleSheet } from 'react-native';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { EngineProvider } from './src/engine/EngineProvider';
 import ScreenSwitch from './src/screens/ScreenSwitch';
-import OpenersPopup from './src/popups/OpenersPopup';
 
 function AppContent() {
   const { colors, theme } = useTheme();
@@ -21,10 +20,6 @@ function AppContent() {
         backgroundColor={colors.background}
       />
       <ScreenSwitch />
-      {/* Mounted globally (not inside a specific screen) since it appears
-          right after both startMatch() and startSecondInnings(), on
-          whatever screen state.screen has just become. */}
-      <OpenersPopup />
     </SafeAreaView>
   );
 }

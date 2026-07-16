@@ -181,6 +181,29 @@ function undoLastBallAndResume() {
   commit();
 }
 
+// Mid-innings name correction (typo fixes), not gated by any validation in
+// the source -- note the source's renameBatsman/renameBowler don't call
+// render() either (unlike almost everything else), since the DOM input's
+// own text already shows the edit; commit() here is the RN equivalent of
+// "the rest of the UI should reflect the corrected name."
+function renameBatsman(i, val) {
+  const inn = curInnings();
+  inn.batsmen[i].name = val;
+  commit();
+}
+
+function renameBowler(val) {
+  const inn = curInnings();
+  currentBowler(inn).name = val;
+  commit();
+}
+
+function toggleOverHistory() {
+  const state = getState();
+  state.showOverHistory = !state.showOverHistory;
+  commit();
+}
+
 module.exports = {
   swapStrike,
   checkOverEnd,
@@ -191,4 +214,7 @@ module.exports = {
   afterBall,
   undo,
   undoLastBallAndResume,
+  renameBatsman,
+  renameBowler,
+  toggleOverHistory,
 };

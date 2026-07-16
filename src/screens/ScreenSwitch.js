@@ -4,14 +4,16 @@ import { useEngine } from '../engine/EngineProvider';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
 import SetupScreen from './SetupScreen';
+import ScoringScreen from './ScoringScreen';
 
 // Mirrors the source render()'s if/else-if dispatch on state.screen. Screens
-// not yet built (scoring/break/result -- M5/M7) fall back to a placeholder
-// so navigating past setup is verifiable before they exist.
+// not yet built (break/result -- M7) fall back to a placeholder so
+// navigating past them is verifiable before they exist.
 export default function ScreenSwitch() {
   const state = useEngine();
 
   if (state.screen === 'setup') return <SetupScreen />;
+  if (state.screen === 'scoring') return <ScoringScreen />;
 
   return <UnbuiltScreenPlaceholder screen={state.screen} />;
 }
