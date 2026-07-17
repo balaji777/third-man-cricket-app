@@ -131,10 +131,6 @@ function howOutText(type, bowlerName, fielderName, d) {
   return 'out';
 }
 
-// Phase 1 simplification: a tie in innings 2 routes straight to 'result'
-// (super overs are deferred), so target/runs comparisons below only ever
-// see a genuine win or a tie -- matchResultText's tie branch is unchanged
-// from the source.
 function matchResultText() {
   const state = getState();
   const inn1 = state.data[1],

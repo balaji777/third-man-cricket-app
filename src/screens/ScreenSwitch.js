@@ -9,10 +9,13 @@ import BreakScreen from './BreakScreen';
 import ResultScreen from './ResultScreen';
 import AuthLoadingScreen from './AuthLoadingScreen';
 import LoginScreen from './LoginScreen';
+import SuperOverIntroScreen from './SuperOverIntroScreen';
+import SuperOverScoringScreen from './SuperOverScoringScreen';
+import SuperOverTiedAgainScreen from './SuperOverTiedAgainScreen';
 
 // Mirrors the source render()'s if/else-if dispatch on state.screen. Screens
-// out of Phase 1 scope (super overs, leaderboard) fall back to a
-// placeholder so navigating past them is verifiable before they exist.
+// still out of Phase 2 scope (leaderboard) fall back to a placeholder so
+// navigating past them is verifiable before they exist.
 export default function ScreenSwitch() {
   const state = useEngine();
 
@@ -22,6 +25,9 @@ export default function ScreenSwitch() {
   if (state.screen === 'scoring') return <ScoringScreen />;
   if (state.screen === 'break') return <BreakScreen />;
   if (state.screen === 'result') return <ResultScreen />;
+  if (state.screen === 'superOverIntro') return <SuperOverIntroScreen />;
+  if (state.screen === 'superOverScoring') return <SuperOverScoringScreen />;
+  if (state.screen === 'superOverTiedAgain') return <SuperOverTiedAgainScreen />;
 
   return <UnbuiltScreenPlaceholder screen={state.screen} />;
 }

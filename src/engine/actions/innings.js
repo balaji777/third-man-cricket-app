@@ -1,9 +1,4 @@
 // Innings/match completion, ported from js/app.js.
-//
-// Phase 1 simplification: the source routes a tie in innings 2 to
-// screen='superOverIntro' (both here and in endInningsEarly). Super overs
-// are deferred, so a tie routes straight to 'result' instead -- matchResultText's
-// existing "Match tied" branch needs no changes, only this routing does.
 const { getState, setState, curInnings, snapshot, freshInnings, freshMatch } = require('../state');
 const { computeAutoMOTM } = require('../helpers');
 const { commit, triggerClear } = require('../store');
@@ -21,9 +16,9 @@ function checkInningsEnd() {
     if (state.inningsNum === 1) {
       state.target = inn.runs + 1;
       state.screen = 'break';
+    } else if (inn.runs === state.target - 1) {
+      state.screen = 'superOverIntro';
     } else {
-      // Source: else-if(inn.runs === state.target-1) -> 'superOverIntro'.
-      // Phase 1: both a win and a tie go straight to 'result'.
       state.screen = 'result';
       state.manOfMatch = computeAutoMOTM();
     }
@@ -53,6 +48,8 @@ function endInningsEarly() {
   if (state.inningsNum === 1) {
     state.target = inn.runs + 1;
     state.screen = 'break';
+  } else if (inn.runs === state.target - 1) {
+    state.screen = 'superOverIntro';
   } else {
     state.screen = 'result';
     state.manOfMatch = computeAutoMOTM();

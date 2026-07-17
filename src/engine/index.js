@@ -12,5 +12,6 @@ module.exports = Object.assign(
   require('./actions/scoring'),
   require('./actions/dismissal'),
   require('./actions/popupQueue'),
-  require('./actions/innings')
+  require('./actions/innings'),
+  require('./actions/superOver')
 );

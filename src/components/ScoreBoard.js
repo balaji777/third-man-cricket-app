@@ -5,20 +5,7 @@ import { fontFamily } from '../theme/typography';
 import { oversStr, rate, currentBowler, inPowerplay } from '../engine/helpers';
 import { updateWicketsLimit } from '../engine/actions/innings';
 import Card from './Card';
-
-function ballStyle(b, colors) {
-  if (b === '4') return { backgroundColor: colors.amber };
-  if (b === '6') return { backgroundColor: colors.red };
-  if (b === 'W') return { backgroundColor: colors.red };
-  if (/^(wd|nb|b|lb|db)/.test(b)) return { backgroundColor: colors.panel2, borderWidth: 1, borderColor: colors.teal };
-  return { backgroundColor: colors.panel2 };
-}
-
-function ballTextColor(b, colors) {
-  if (b === '4') return colors.runBtnInk;
-  if (b === '6' || b === 'W') return '#FFFFFF';
-  return colors.floodlight;
-}
+import { ballStyle, ballTextColor } from './ballDisplay';
 
 // Mirrors the source's scoreboard block: team/score, overs/CRR, wickets-limit
 // inline editor, target/RRR (innings 2 only), powerplay banner, and the
