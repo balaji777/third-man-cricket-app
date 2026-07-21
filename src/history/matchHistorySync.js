@@ -9,8 +9,9 @@ import { recordMatchToHistory } from './matchHistoryLogic';
 //
 // Saved matches live under users/{uid}/matches -- a separate subcollection
 // from M10's users/{uid}/liveMatches, since a recorded match is permanent
-// history rather than in-progress scratch state.
-
+// history rather than in-progress scratch state. Exported so M12's
+// leaderboardSync.js (fetch/clear) reads from the same collection without
+// duplicating the path.
 function matchesCollection(uid) {
   return firestore().collection('users').doc(uid).collection('matches');
 }
@@ -47,4 +48,4 @@ function recordMatchOnCommit(state) {
   if (entry) saveMatchEntryToFirestore(state, entry);
 }
 
-export { saveMatchEntryToFirestore, recordMatchOnCommit };
+export { matchesCollection, saveMatchEntryToFirestore, recordMatchOnCommit };

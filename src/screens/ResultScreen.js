@@ -12,10 +12,11 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import InningsCompactLine from '../components/InningsCompactLine';
 import { signOutUser } from '../auth/firebaseAuth';
+import { openLeaderboard } from '../leaderboard/leaderboardSync';
 
 // Ported from the source's renderResult(). Still deferred to later Phase 2
-// milestones (not rendered here): Top performers, run-rate worm chart,
-// share/PDF export buttons, and the leaderboard link.
+// milestones (not rendered here): Top performers, run-rate worm chart, and
+// share/PDF export buttons.
 export default function ResultScreen() {
   const state = useEngine();
   const { colors } = useTheme();
@@ -54,6 +55,14 @@ export default function ResultScreen() {
         ) : null}
 
         <Button label="New match" onPress={newMatch} />
+        {!(state.user && state.user.isAnonymous) ? (
+          <Button
+            label="View Leaderboard"
+            variant="panel"
+            style={styles.leaderboardBtn}
+            onPress={openLeaderboard}
+          />
+        ) : null}
         {inn2.history.length > 0 && !so ? (
           <Button
             label="Undo last ball (fix a mistake)"
@@ -149,6 +158,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     marginTop: 6,
+  },
+  leaderboardBtn: {
+    marginTop: 4,
   },
   undoBtn: {
     marginTop: 4,

@@ -36,6 +36,14 @@ function formatTime12hr(ms) {
   return h + ':' + mStr + ' ' + ampm;
 }
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatDateShort(ms) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return d.getDate() + ' ' + SHORT_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+}
+
 function formatDuration(startMs, endMs) {
   if (!startMs || !endMs) return '';
   const mins = Math.round((endMs - startMs) / 60000);
@@ -209,6 +217,7 @@ module.exports = {
   economyRate,
   extrasTotal,
   formatTime12hr,
+  formatDateShort,
   formatDuration,
   currentBowler,
   striker,

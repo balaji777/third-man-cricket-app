@@ -13,6 +13,7 @@ import Chip from '../components/Chip';
 import TossPopup from '../popups/TossPopup';
 import { signOutUser } from '../auth/firebaseAuth';
 import { upgradeToGoogle } from '../auth/googleSignIn';
+import { openLeaderboard } from '../leaderboard/leaderboardSync';
 
 const OVERS_PRESETS = [5, 10, 20, 50];
 
@@ -33,6 +34,15 @@ export default function SetupScreen() {
       <Topbar showReset={false} showSignOut={!!state.user} onSignOut={signOutUser} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[styles.h2, { color: colors.floodlight }]}>New match setup</Text>
+
+        {!(state.user && state.user.isAnonymous) ? (
+          <Button
+            label="View Leaderboard"
+            variant="panel"
+            style={styles.leaderboardBtn}
+            onPress={openLeaderboard}
+          />
+        ) : null}
 
         {state.user && state.user.isAnonymous ? (
           <Card style={styles.guestCard}>
@@ -195,6 +205,9 @@ const styles = StyleSheet.create({
   guestCard: {
     alignItems: 'center',
     gap: 10,
+    marginBottom: 16,
+  },
+  leaderboardBtn: {
     marginBottom: 16,
   },
   guestError: {
