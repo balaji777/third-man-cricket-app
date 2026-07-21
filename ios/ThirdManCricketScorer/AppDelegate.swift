@@ -2,6 +2,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import FirebaseCore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,6 +15,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // Must run before anything touches @react-native-firebase/* (auth, firestore).
+    // Reads ios/ThirdManCricketScorer/GoogleService-Info.plist, which isn't in
+    // this repo yet -- see M15 in memory for how to generate it (register an
+    // iOS app under the third-man-cricket Firebase project, then download it
+    // from Project settings and drop it in that folder).
+    FirebaseApp.configure()
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
