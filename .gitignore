@@ -84,9 +84,5 @@ firebase-debug.log
 # OS
 Thumbs.db
 
-# Native Firebase config (per-developer/CI, not committed)
-android/app/google-services.json
-**/GoogleService-Info.plist
-
 # Netlify CLI's local site-link state (machine-local, not project source)
 .netlify/

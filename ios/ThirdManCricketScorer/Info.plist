@@ -24,19 +24,12 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<!--
-	  Google Sign-In's redirect back into the app after the browser-based
-	  flow. REPLACE_WITH_REVERSED_CLIENT_ID is the REVERSED_CLIENT_ID field
-	  from GoogleService-Info.plist (once that file exists -- see M15 in
-	  memory), or the "iOS URL scheme" shown on the iOS OAuth client in
-	  Google Cloud Console. Sign-in will fail without this.
-	-->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
+				<string>com.googleusercontent.apps.45655423481-tbrbr9igru3jkvv1udauehp7jfa4uok6</string>
 			</array>
 		</dict>
 	</array>
