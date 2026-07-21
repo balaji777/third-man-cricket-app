@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { useEngine } from '../engine/EngineProvider';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
@@ -12,11 +13,14 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import InningsCompactLine from '../components/InningsCompactLine';
 import WormChart from '../components/WormChart';
+import ShareCard from '../components/ShareCard';
 import { signOutUser } from '../auth/firebaseAuth';
 import { openLeaderboard } from '../leaderboard/leaderboardSync';
+import { shareScorecard } from '../export/share';
+import { exportScorecardPDF } from '../export/pdfExport';
+import { shareScorecardImage } from '../export/shareImage';
 
-// Ported from the source's renderResult(). Still deferred to later Phase 2
-// milestones (not rendered here): share/PDF export buttons.
+// Ported from the source's renderResult().
 export default function ResultScreen() {
   const state = useEngine();
   const { colors } = useTheme();
@@ -26,6 +30,7 @@ export default function ResultScreen() {
   const isGuest = !!(state.user && state.user.isAnonymous);
   const bb = bestBatting();
   const bwl = bestBowling();
+  const shareCardRef = useRef(null);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -82,6 +87,21 @@ export default function ResultScreen() {
           </Card>
         ) : null}
 
+        <View style={styles.utilRow}>
+          {!isGuest ? (
+            <Button label="Share scorecard" variant="panel" style={styles.utilBtn} onPress={shareScorecard} />
+          ) : null}
+          <Button label="Export PDF" variant="panel" style={styles.utilBtn} onPress={exportScorecardPDF} />
+          {!isGuest ? (
+            <Button
+              label="Share image"
+              variant="panel"
+              style={styles.utilBtn}
+              onPress={() => shareScorecardImage(shareCardRef)}
+            />
+          ) : null}
+        </View>
+
         <Button label="New match" onPress={newMatch} />
         {!isGuest ? (
           <Button
@@ -100,6 +120,14 @@ export default function ResultScreen() {
           />
         ) : null}
       </ScrollView>
+
+      {/* Off-screen but laid out (not opacity:0 -- some Android view-shot
+          builds skip invisible views), captured on demand by "Share image". */}
+      <View style={styles.shareCardHost} pointerEvents="none">
+        <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 0.9 }}>
+          <ShareCard state={state} />
+        </ViewShot>
+      </View>
     </View>
   );
 }
@@ -225,5 +253,20 @@ const styles = StyleSheet.create({
   },
   undoBtn: {
     marginTop: 4,
+  },
+  utilRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  utilBtn: {
+    flex: 1,
+    minWidth: 100,
+    paddingVertical: 10,
+  },
+  shareCardHost: {
+    position: 'absolute',
+    top: 0,
+    left: -9999,
   },
 });

@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "test:engine": "node --test \"src/engine/__tests__/*.test.js\" \"src/sync/__tests__/*.test.js\" \"src/history/__tests__/*.test.js\" \"src/leaderboard/__tests__/*.test.js\""
+    "test:engine": "node --test \"src/engine/__tests__/*.test.js\" \"src/sync/__tests__/*.test.js\" \"src/history/__tests__/*.test.js\" \"src/leaderboard/__tests__/*.test.js\" \"src/export/__tests__/*.test.js\""
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.1",
@@ -19,8 +19,11 @@
     "@react-native-google-signin/google-signin": "^16.1.2",
     "react": "19.2.3",
     "react-native": "0.86.0",
+    "react-native-html-to-pdf": "^1.3.0",
     "react-native-safe-area-context": "^5.5.2",
-    "react-native-svg": "^15.15.5"
+    "react-native-share": "^12.3.1",
+    "react-native-svg": "^15.15.5",
+    "react-native-view-shot": "^5.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

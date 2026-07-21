@@ -11,15 +11,19 @@ import {
   powerplayScore,
 } from '../engine/helpers';
 import { getState } from '../engine/state';
+import { exportInningsPDF } from '../export/pdfExport';
+import { shareInnings } from '../export/share';
 import Card from './Card';
+import Button from './Button';
 
 // Full per-innings scorecard: batting figures, extras, bowling figures,
-// fall of wickets, and partnerships. Ported from the source's
-// scorecardBlock() (PDF/share buttons it also renders are deferred).
-export default function ScorecardBlock({ inn }) {
+// fall of wickets, and partnerships, plus (M14) a per-innings PDF/share
+// pair. Ported from the source's scorecardBlock().
+export default function ScorecardBlock({ inn, inningsNum }) {
   const { colors } = useTheme();
   const pp = powerplayScore(inn);
   const state = getState();
+  const isGuest = !!(state.user && state.user.isAnonymous);
 
   const strikerObj = inn.batsmen[inn.strikerIdx];
   const nonStrikerObj = inn.batsmen[inn.nonStrikerIdx];
@@ -100,6 +104,23 @@ export default function ScorecardBlock({ inn }) {
           ) : null}
         </>
       ) : null}
+
+      {inningsNum && !isGuest ? (
+        <View style={styles.utilRow}>
+          <Button
+            label="Download PDF"
+            variant="panel"
+            style={styles.utilBtn}
+            onPress={() => exportInningsPDF(inningsNum)}
+          />
+          <Button
+            label="Share"
+            variant="panel"
+            style={styles.utilBtn}
+            onPress={() => shareInnings(inningsNum)}
+          />
+        </View>
+      ) : null}
     </Card>
   );
 }
@@ -150,5 +171,13 @@ const styles = StyleSheet.create({
   },
   partnershipsLabel: {
     marginTop: 8,
+  },
+  utilRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  utilBtn: {
+    flex: 1,
   },
 });

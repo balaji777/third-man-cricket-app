@@ -8,6 +8,7 @@ import { newMatch } from '../engine/actions/innings';
 import { computeLeaderboardStats } from '../leaderboard/leaderboardLogic';
 import { closeLeaderboard, setLeaderboardTab, clearMatchHistory } from '../leaderboard/leaderboardSync';
 import { signOutUser } from '../auth/firebaseAuth';
+import { exportLeaderboardPDF } from '../export/pdfExport';
 import Topbar from '../components/Topbar';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -22,8 +23,7 @@ const TABS = [
 
 // Ported from the source's renderLeaderboard(). computeLeaderboardStats
 // itself lives in leaderboard/leaderboardLogic.js (RN-free, unit tested);
-// this screen just picks a tab's slice of it and lays out rows. PDF export
-// is M14's job, not built here.
+// this screen just picks a tab's slice of it and lays out rows.
 export default function LeaderboardScreen() {
   const state = useEngine();
   const { colors } = useTheme();
@@ -67,12 +67,20 @@ function LeaderboardBody({ history, tab, colors }) {
       {tab === 'points' ? <PointsTab teams={stats.teams} /> : null}
       {tab === 'history' ? <HistoryTab matches={history} /> : null}
 
-      <Button
-        label="Clear history"
-        variant="panel"
-        style={styles.clearBtn}
-        onPress={clearMatchHistory}
-      />
+      <View style={styles.utilRow}>
+        <Button
+          label="Export PDF"
+          variant="panel"
+          style={styles.utilBtn}
+          onPress={() => exportLeaderboardPDF(history)}
+        />
+        <Button
+          label="Clear history"
+          variant="panel"
+          style={styles.utilBtn}
+          onPress={clearMatchHistory}
+        />
+      </View>
     </>
   );
 }
@@ -252,7 +260,13 @@ const styles = StyleSheet.create({
   backBtn: {
     marginTop: 4,
   },
-  clearBtn: {
-    marginTop: 4,
+  utilRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  utilBtn: {
+    flex: 1,
+    minWidth: 100,
   },
 });

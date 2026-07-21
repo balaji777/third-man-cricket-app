@@ -14,13 +14,22 @@ import SuperOverScoringScreen from './SuperOverScoringScreen';
 import SuperOverTiedAgainScreen from './SuperOverTiedAgainScreen';
 import ResumePromptScreen from './ResumePromptScreen';
 import LeaderboardScreen from './LeaderboardScreen';
+import Toast from '../components/Toast';
 
 // Mirrors the source render()'s if/else-if dispatch on state.screen.
 // 'resumePrompt' has no source equivalent -- new in M10, see
 // src/sync/resumeLiveMatch.js.
 export default function ScreenSwitch() {
   const state = useEngine();
+  return (
+    <>
+      {currentScreen(state)}
+      <Toast message={state.toastMessage} />
+    </>
+  );
+}
 
+function currentScreen(state) {
   if (state.screen === 'authLoading') return <AuthLoadingScreen />;
   if (state.screen === 'login') return <LoginScreen />;
   if (state.screen === 'resumePrompt') return <ResumePromptScreen />;

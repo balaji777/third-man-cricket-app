@@ -25,7 +25,7 @@ export default function InningsCompactLine({ inn, n, expanded }) {
           </Text>
         </Card>
       </Pressable>
-      {expanded ? <ScorecardBlock inn={inn} /> : null}
+      {expanded ? <ScorecardBlock inn={inn} inningsNum={n} /> : null}
     </View>
   );
 }
