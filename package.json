@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "test:engine": "node --test \"src/engine/__tests__/*.test.js\" \"src/sync/__tests__/*.test.js\""
+    "test:engine": "node --test \"src/engine/__tests__/*.test.js\" \"src/sync/__tests__/*.test.js\" \"src/history/__tests__/*.test.js\""
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.1",

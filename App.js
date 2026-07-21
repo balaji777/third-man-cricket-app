@@ -14,6 +14,7 @@ import { loadMatchState, saveMatchState, clearSavedMatch } from './src/persisten
 import { configureGoogleSignIn } from './src/auth/googleSignIn';
 import { initAuthListener } from './src/auth/firebaseAuth';
 import { syncOnCommit, clearLiveSyncTimer, deleteLiveMatchDoc } from './src/sync/liveMatchSync';
+import { recordMatchOnCommit } from './src/history/matchHistorySync';
 import ScreenSwitch from './src/screens/ScreenSwitch';
 
 function AppContent() {
@@ -49,7 +50,16 @@ function App() {
       clearLiveSyncTimer();
       deleteLiveMatchDoc(state.user, state.matchId);
     });
-    setSyncHook(syncOnCommit);
+    // recordMatchOnCommit before syncOnCommit, mirroring the source
+    // render()'s order (recordMatchToHistory() runs first, scheduleLive
+    // MatchSync() last) -- doesn't matter functionally since M11 only
+    // touches matchRecorded/matchHistoryDocId/matchHistoryCache and M10
+    // only touches matchId/the live-sync timer, but keeps the two hooks
+    // reading the same way the source did.
+    setSyncHook(state => {
+      recordMatchOnCommit(state);
+      syncOnCommit(state);
+    });
     configureGoogleSignIn();
 
     loadMatchState().then(loaded => {
