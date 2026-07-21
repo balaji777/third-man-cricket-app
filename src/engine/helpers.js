@@ -210,6 +210,104 @@ function computeAutoMOTM() {
   return best ? best.name : null;
 }
 
+function bestBatting() {
+  const state = getState();
+  let best = null;
+  [state.data[1], state.data[2]].forEach(function (inn) {
+    if (!inn) return;
+    inn.batsmen.forEach(function (b) {
+      if (b.balls === 0) return;
+      const bSR = (b.runs / b.balls) * 100;
+      if (!best) {
+        best = b;
+        return;
+      }
+      const bestSR = (best.runs / best.balls) * 100;
+      if (b.runs > best.runs || (b.runs === best.runs && bSR > bestSR)) best = b;
+    });
+  });
+  return best;
+}
+
+function bestBowling() {
+  const state = getState();
+  let best = null;
+  [state.data[1], state.data[2]].forEach(function (inn) {
+    if (!inn) return;
+    inn.bowlers.forEach(function (bw) {
+      if (bw.balls === 0) return;
+      if (!best) {
+        best = bw;
+        return;
+      }
+      if (bw.wickets > best.wickets || (bw.wickets === best.wickets && economyRate(bw) < economyRate(best))) best = bw;
+    });
+  });
+  return best;
+}
+
+// x is measured in overs (whole overs from overHistory, plus a fractional
+// over from thisOver if one is in progress -- see the loop below), y is
+// cumulative runs.
+function cumulativeRuns(inn) {
+  const arr = [{ x: 0, y: 0 }];
+  let running = 0;
+  inn.overHistory.forEach(function (ov, i) {
+    running += computeOverTotal(ov);
+    arr.push({ x: i + 1, y: running });
+  });
+  if (inn.thisOver.length > 0) {
+    // Regression: an innings that ends mid-over (all out, or target chased)
+    // used to drop this partial over from the graph entirely -- the last
+    // plotted point stopped at the last completed over instead of the
+    // innings' true final total. Always plot whatever's in thisOver too.
+    running += computeOverTotal(inn.thisOver);
+    arr.push({ x: inn.overHistory.length + inn.thisOver.length / 6, y: running });
+  }
+  return arr;
+}
+
+// Ported from the source's buildWormChartSVG(), split so the point-geometry
+// math (pure, testable under node --test) is separate from the actual SVG
+// markup, which the RN port renders via react-native-svg components instead
+// of an HTML string -- see src/components/WormChart.js.
+function buildWormChartPoints() {
+  const state = getState();
+  const inn1 = state.data[1];
+  const inn2 = state.data[2];
+  const w = 300,
+    h = 170,
+    padL = 28,
+    padR = 14,
+    padT = 12,
+    padB = 14;
+  const c1 = cumulativeRuns(inn1);
+  const c2 = cumulativeRuns(inn2);
+  const maxOvers = Math.max(c1[c1.length - 1].x, c2[c2.length - 1].x, 1);
+  const maxRuns = Math.max(c1[c1.length - 1].y, c2[c2.length - 1].y, 10);
+  function toPoints(arr) {
+    return arr
+      .map(function (p) {
+        const x = padL + (p.x / maxOvers) * (w - padL - padR);
+        const y = h - padB - (p.y / maxRuns) * (h - padT - padB);
+        return x.toFixed(1) + ',' + y.toFixed(1);
+      })
+      .join(' ');
+  }
+  return {
+    width: w,
+    height: h,
+    padL: padL,
+    padR: padR,
+    padT: padT,
+    padB: padB,
+    team1Name: inn1.battingName,
+    team2Name: inn2.battingName,
+    team1Points: toPoints(c1),
+    team2Points: toPoints(c2),
+  };
+}
+
 module.exports = {
   oversStr,
   rate,
@@ -231,4 +329,7 @@ module.exports = {
   matchResultText,
   computeMatchWinner,
   computeAutoMOTM,
+  bestBatting,
+  bestBowling,
+  buildWormChartPoints,
 };

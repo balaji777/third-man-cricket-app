@@ -68,3 +68,88 @@ test('howOutText formats each dismissal type', () => {
     "run out (1 run, striker's end/Root)"
   );
 });
+
+test('bestBatting picks the higher score across both innings, tie-broken by strike rate', () => {
+  const s = app.freshMatch();
+  s.data[1] = app.freshInnings('Team A', 'Team B');
+  s.data[1].batsmen = [
+    { name: 'Alice', runs: 40, balls: 30, fours: 3, sixes: 1, out: true },
+    { name: 'Bella', runs: 40, balls: 20, fours: 4, sixes: 2, out: false },
+  ];
+  s.data[2] = app.freshInnings('Team B', 'Team A');
+  s.data[2].batsmen = [{ name: 'Cara', runs: 39, balls: 10, fours: 0, sixes: 3, out: false }];
+  app.setState(s);
+
+  const best = app.bestBatting();
+
+  assert.equal(best.name, 'Bella', 'same runs as Alice but a better strike rate');
+});
+
+test('bestBatting ignores a batter who has not faced a ball', () => {
+  const s = app.freshMatch();
+  s.data[1] = app.freshInnings('Team A', 'Team B');
+  s.data[1].batsmen[0].balls = 0;
+  s.data[1].batsmen[1] = { name: 'Dee', runs: 5, balls: 3, fours: 1, sixes: 0, out: false };
+  s.data[2] = app.freshInnings('Team B', 'Team A');
+  app.setState(s);
+
+  assert.equal(app.bestBatting().name, 'Dee');
+});
+
+test('bestBowling picks the most wickets, tie-broken by economy', () => {
+  const s = app.freshMatch();
+  s.data[1] = app.freshInnings('Team A', 'Team B');
+  s.data[1].bowlers = [{ name: 'Eve', balls: 24, runs: 30, wickets: 2, maidens: 0 }];
+  s.data[2] = app.freshInnings('Team B', 'Team A');
+  s.data[2].bowlers = [{ name: 'Finn', balls: 24, runs: 18, wickets: 2, maidens: 1 }];
+  app.setState(s);
+
+  assert.equal(app.bestBowling().name, 'Finn', 'same wickets as Eve but a better economy');
+});
+
+test('buildWormChartPoints scales both innings against the same max axes', () => {
+  const s = app.freshMatch();
+  s.data[1] = app.freshInnings('Team A', 'Team B');
+  s.data[1].overHistory = [['4', '4', '0', '1', '0', '2']]; // 11 runs, 1 over
+  s.data[2] = app.freshInnings('Team B', 'Team A');
+  s.data[2].overHistory = [
+    ['1', '1', '1', '1', '1', '1'],
+    ['1', '1', '1', '1', '1', '1'],
+  ]; // 12 runs, 2 overs -- the taller/wider innings, sets both axes' max
+  app.setState(s);
+
+  const chart = app.buildWormChartPoints();
+
+  assert.equal(chart.team1Name, 'Team A');
+  assert.equal(chart.team2Name, 'Team B');
+  const team1Points = chart.team1Points.trim().split(' ');
+  const team2Points = chart.team2Points.trim().split(' ');
+  assert.equal(team1Points.length, 2, 'origin plus one completed over');
+  assert.equal(team2Points.length, 3, 'origin plus two completed overs');
+});
+
+test('buildWormChartPoints plots the partial over left in progress when an innings ends mid-over', () => {
+  // Reproduces a source regression: buildWormChartSVG only summed
+  // inn.overHistory, so whatever partial over was in flight when an innings
+  // ended (all out or target chased mid-over) was dropped from the graph.
+  const s = app.freshMatch();
+  const inn1 = app.freshInnings('Team A', 'Team B');
+  inn1.overHistory = [['4', '4']]; // 8 runs across one completed over
+  inn1.thisOver = ['4', '6']; // 10 more runs, over still in progress
+  const inn2 = app.freshInnings('Team B', 'Team A');
+  inn2.overHistory = [['4'], ['4']]; // 8 runs, innings ended on the over boundary
+  inn2.thisOver = [];
+  s.data[1] = inn1;
+  s.data[2] = inn2;
+  app.setState(s);
+
+  const chart = app.buildWormChartPoints();
+  const team1Points = chart.team1Points.trim().split(' ');
+  const lastPoint = team1Points[team1Points.length - 1].split(',').map(Number);
+  const lastY = lastPoint[1];
+
+  // Chart y-axis: padT=12 is the top (max value). If the partial over's 10
+  // runs were dropped, team1's true total (18) would never be plotted and
+  // the last point would sit well below the top of the chart.
+  assert.ok(lastY < 13, `expected the final point near the top of the chart, got y=${lastY}`);
+});

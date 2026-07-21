@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEngine } from '../engine/EngineProvider';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
-import { matchResultText } from '../engine/helpers';
+import { matchResultText, bestBatting, bestBowling, strikeRate, oversStr } from '../engine/helpers';
 import { newMatch } from '../engine/actions/innings';
 import { undoLastBallAndResume } from '../engine/actions/scoring';
 import { soExtrasTotal } from '../engine/actions/superOver';
@@ -11,18 +11,21 @@ import Topbar from '../components/Topbar';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import InningsCompactLine from '../components/InningsCompactLine';
+import WormChart from '../components/WormChart';
 import { signOutUser } from '../auth/firebaseAuth';
 import { openLeaderboard } from '../leaderboard/leaderboardSync';
 
 // Ported from the source's renderResult(). Still deferred to later Phase 2
-// milestones (not rendered here): Top performers, run-rate worm chart, and
-// share/PDF export buttons.
+// milestones (not rendered here): share/PDF export buttons.
 export default function ResultScreen() {
   const state = useEngine();
   const { colors } = useTheme();
   const inn1 = state.data[1];
   const inn2 = state.data[2];
   const so = state.superOver;
+  const isGuest = !!(state.user && state.user.isAnonymous);
+  const bb = bestBatting();
+  const bwl = bestBowling();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -44,6 +47,31 @@ export default function ResultScreen() {
           </Card>
         ) : null}
 
+        {!isGuest && (bb || bwl) ? (
+          <Card style={styles.performersCard}>
+            <Text style={[styles.sectionLabel, { color: colors.chalk }]}>Top performers</Text>
+            {bb ? (
+              <ResultLine
+                label="Best batting"
+                value={`${bb.name} — ${bb.runs} (${bb.balls}) SR ${strikeRate(bb.runs, bb.balls)}`}
+              />
+            ) : null}
+            {bwl ? (
+              <ResultLine
+                label="Best bowling"
+                value={`${bwl.name} — ${bwl.wickets}/${bwl.runs} (${oversStr(bwl.balls)} ov)`}
+              />
+            ) : null}
+          </Card>
+        ) : null}
+
+        {!isGuest && (inn1.overHistory.length > 0 || inn2.overHistory.length > 0) ? (
+          <Card style={styles.wormCard}>
+            <Text style={[styles.sectionLabel, { color: colors.chalk }]}>Run rate comparison</Text>
+            <WormChart />
+          </Card>
+        ) : null}
+
         <InningsCompactLine inn={inn1} n={1} expanded={state.showInningsCard[1]} />
         <InningsCompactLine inn={inn2} n={2} expanded={state.showInningsCard[2]} />
 
@@ -55,7 +83,7 @@ export default function ResultScreen() {
         ) : null}
 
         <Button label="New match" onPress={newMatch} />
-        {!(state.user && state.user.isAnonymous) ? (
+        {!isGuest ? (
           <Button
             label="View Leaderboard"
             variant="panel"
@@ -72,6 +100,16 @@ export default function ResultScreen() {
           />
         ) : null}
       </ScrollView>
+    </View>
+  );
+}
+
+function ResultLine({ label, value }) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.resultLine}>
+      <Text style={[styles.resultLineLabel, { color: colors.chalk }]}>{label}</Text>
+      <Text style={[styles.resultLineValue, { color: colors.floodlight }]}>{value}</Text>
     </View>
   );
 }
@@ -126,6 +164,29 @@ const styles = StyleSheet.create({
   },
   soCard: {
     gap: 0,
+  },
+  performersCard: {
+    gap: 0,
+  },
+  resultLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    gap: 12,
+  },
+  resultLineLabel: {
+    fontFamily,
+    fontSize: 13,
+  },
+  resultLineValue: {
+    fontFamily,
+    fontSize: 13,
+    fontWeight: '600',
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  wormCard: {
+    gap: 8,
   },
   soLine: {
     marginBottom: 8,

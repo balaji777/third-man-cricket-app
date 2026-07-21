@@ -1,7 +1,6 @@
-// Ported from the retired web app's test/regressions.test.js. The original
-// suite's worm-chart regression test (buildWormChartSVG) is dropped -- the
-// run-rate chart is out of Phase 1 scope -- but the other two, which cover
-// core engine behavior, are kept.
+// Ported from the retired web app's test/regressions.test.js. The
+// worm-chart regression test now lives in pure-helpers.test.js, next to
+// M13's other buildWormChartPoints tests.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const app = require('../index');
