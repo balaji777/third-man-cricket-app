@@ -16,12 +16,19 @@ export function configureGoogleSignIn() {
 // Bridges a native Google Sign-In idToken into a Firebase JS-SDK-style
 // credential -- the RN equivalent of the source's nativeGoogleCredential(),
 // which did the same bridging from Capacitor's native plugin.
+//
+// signIn() alone doesn't return an accessToken (only idToken) on this
+// library version -- getTokens() is a second native call for it. The
+// Firebase JS wrapper accepts a null accessToken, but the underlying native
+// Android SDK's GoogleAuthProvider.getCredential() throws "accessToken
+// cannot be empty" if it's actually missing, so both are required here.
 async function nativeGoogleCredential() {
   await GoogleSignin.hasPlayServices();
   const result = await GoogleSignin.signIn();
   const idToken = result && result.data ? result.data.idToken : result && result.idToken;
   if (!idToken) throw new Error('No idToken returned from Google Sign-In');
-  return auth.GoogleAuthProvider.credential(idToken);
+  const { accessToken } = await GoogleSignin.getTokens();
+  return auth.GoogleAuthProvider.credential(idToken, accessToken);
 }
 
 export function signInWithGoogle() {
