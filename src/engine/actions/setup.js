@@ -1,11 +1,22 @@
 // Match setup: overs/toss-adjacent config, starting a match, and the
 // openers popup. Ported from js/app.js.
-//
-// The source's startMatch() also mints a Firestore live-match doc id here
-// (state.matchId) -- that's live-sync scaffolding, out of Phase 1 scope, so
-// state.matchId is simply left null (its default from freshMatch).
-const { getState, curInnings, freshInnings } = require('../state');
+const { getState, curInnings, freshInnings, isGuest } = require('../state');
 const { commit } = require('../store');
+
+const AUTO_ID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+// The source mints this via Firestore's doc().id (a random ID generated
+// client-side, no network round trip) -- generated here in plain JS instead
+// so engine/* doesn't need the Firestore SDK to stay RN-free for
+// `node --test`. Any sufficiently-random unique string works equally well
+// as a Firestore document id; the SDK's own algorithm isn't required.
+function generateMatchId() {
+  let id = '';
+  for (let i = 0; i < 20; i++) {
+    id += AUTO_ID_CHARS.charAt(Math.floor(Math.random() * AUTO_ID_CHARS.length));
+  }
+  return id;
+}
 
 function setOvers(o) {
   const state = getState();
@@ -21,6 +32,9 @@ function startMatch() {
   state.data[1] = freshInnings(battingName, bowlingName);
   state.inningsNum = 1;
   state.screen = 'scoring';
+  if (state.user && !isGuest() && !state.matchId) {
+    state.matchId = generateMatchId();
+  }
   openOpenersPopup();
 }
 

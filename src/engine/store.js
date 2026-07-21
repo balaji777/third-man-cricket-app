@@ -11,10 +11,12 @@ const { getState, setState } = require('./state');
 const listeners = new Set();
 let persistHook = null;
 let clearHook = null;
+let syncHook = null;
 
-// Wired up in App.js (M8, AsyncStorage persistence). Kept as hooks rather
-// than a direct require of the persistence module so engine/* stays free of
-// any RN/AsyncStorage dependency and keeps running under plain `node --test`.
+// Wired up in App.js (M8, AsyncStorage persistence; M10, Firestore live
+// match sync). Kept as hooks rather than a direct require of the
+// persistence/sync modules so engine/* stays free of any RN/AsyncStorage/
+// Firestore dependency and keeps running under plain `node --test`.
 function setPersistHook(fn) {
   persistHook = fn;
 }
@@ -23,9 +25,14 @@ function setClearHook(fn) {
   clearHook = fn;
 }
 
+function setSyncHook(fn) {
+  syncHook = fn;
+}
+
 function commit() {
   setState(Object.assign({}, getState()));
   if (persistHook) persistHook(getState());
+  if (syncHook) syncHook(getState());
   listeners.forEach(fn => fn());
 }
 
@@ -40,4 +47,4 @@ function subscribe(listener) {
   return () => listeners.delete(listener);
 }
 
-module.exports = { commit, subscribe, setPersistHook, setClearHook, triggerClear };
+module.exports = { commit, subscribe, setPersistHook, setClearHook, setSyncHook, triggerClear };

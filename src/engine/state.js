@@ -2,11 +2,13 @@
 // js/app.js. Kept as CommonJS so src/engine/* has zero RN/Babel/Metro
 // dependency and can be tested with plain `node --test`.
 //
-// Fields present in the source but out of Phase 2 scope so far (live cloud
-// sync, match history, leaderboard) are kept in the shape as always-null/
-// false stubs so later milestones can slot them in without a state-shape
-// migration. `over_wkts_seen` (source freshInnings) was dead in the
-// original -- set once, never read -- and is dropped here.
+// Fields present in the source but out of Phase 2 scope so far (match
+// history, leaderboard) are kept in the shape as always-null/false stubs so
+// later milestones can slot them in without a state-shape migration.
+// `pendingLiveMatch` has no source equivalent -- it's new product surface
+// added in M10 (see src/sync/resumeLiveMatch.js). `over_wkts_seen` (source
+// freshInnings) was dead in the original -- set once, never read -- and is
+// dropped here.
 
 function freshMatch() {
   return {
@@ -38,10 +40,11 @@ function freshMatch() {
     soNamesPopup: false,
     soExtraPopup: null,
     superOverTiedFinal: false,
-    // Out of Phase 2 scope so far (match history / live sync / leaderboard).
+    // Out of Phase 2 scope so far (match history / leaderboard).
     matchRecorded: false,
     matchHistoryDocId: null,
     matchId: null,
+    pendingLiveMatch: null,
     previousScreen: null,
     leaderboardTab: 'batting',
     user: null,

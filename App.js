@@ -9,10 +9,11 @@ import { StatusBar, StyleSheet, View } from 'react-native';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { EngineProvider } from './src/engine/EngineProvider';
 import { getState, setState } from './src/engine/state';
-import { setPersistHook, setClearHook } from './src/engine/store';
+import { setPersistHook, setClearHook, setSyncHook } from './src/engine/store';
 import { loadMatchState, saveMatchState, clearSavedMatch } from './src/persistence/matchStorage';
 import { configureGoogleSignIn } from './src/auth/googleSignIn';
 import { initAuthListener } from './src/auth/firebaseAuth';
+import { syncOnCommit, clearLiveSyncTimer, deleteLiveMatchDoc } from './src/sync/liveMatchSync';
 import ScreenSwitch from './src/screens/ScreenSwitch';
 
 function AppContent() {
@@ -39,7 +40,16 @@ function App() {
 
   useEffect(() => {
     setPersistHook(saveMatchState);
-    setClearHook(clearSavedMatch);
+    // newMatch() always clears the saved match regardless of which screen
+    // triggered it -- mirrors the source's newMatch(), which also tears
+    // down any in-progress Firestore live-match doc on the same reset.
+    setClearHook(() => {
+      clearSavedMatch();
+      const state = getState();
+      clearLiveSyncTimer();
+      deleteLiveMatchDoc(state.user, state.matchId);
+    });
+    setSyncHook(syncOnCommit);
     configureGoogleSignIn();
 
     loadMatchState().then(loaded => {

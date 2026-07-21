@@ -12,15 +12,18 @@ import LoginScreen from './LoginScreen';
 import SuperOverIntroScreen from './SuperOverIntroScreen';
 import SuperOverScoringScreen from './SuperOverScoringScreen';
 import SuperOverTiedAgainScreen from './SuperOverTiedAgainScreen';
+import ResumePromptScreen from './ResumePromptScreen';
 
 // Mirrors the source render()'s if/else-if dispatch on state.screen. Screens
 // still out of Phase 2 scope (leaderboard) fall back to a placeholder so
-// navigating past them is verifiable before they exist.
+// navigating past them is verifiable before they exist. 'resumePrompt' has
+// no source equivalent -- new in M10, see src/sync/resumeLiveMatch.js.
 export default function ScreenSwitch() {
   const state = useEngine();
 
   if (state.screen === 'authLoading') return <AuthLoadingScreen />;
   if (state.screen === 'login') return <LoginScreen />;
+  if (state.screen === 'resumePrompt') return <ResumePromptScreen />;
   if (state.screen === 'setup') return <SetupScreen />;
   if (state.screen === 'scoring') return <ScoringScreen />;
   if (state.screen === 'break') return <BreakScreen />;
