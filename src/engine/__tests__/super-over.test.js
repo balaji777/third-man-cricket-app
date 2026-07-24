@@ -59,16 +59,19 @@ test('startSuperOver puts the chasing team in to bat first, in a fresh single in
   assert.equal(state.superOver.data[2], null);
 });
 
-test('confirmSONames rejects blank names and accepts trimmed ones', () => {
+test('confirmSONames falls back to placeholder names when blank and accepts trimmed ones', () => {
   var s = tiedMatchState(20);
   s.screen = 'superOverIntro';
   app.setState(s);
   app.startSuperOver();
 
   app.confirmSONames('', 'Non', 'Bowl');
-  assert.equal(app.getState().playerPopupError, 'Please fill in all three names.');
-  assert.equal(app.getState().soNamesPopup, true);
+  var blankInn = app.curSOInnings();
+  assert.equal(blankInn.strikerName, 'Striker name', 'blank striker falls back to its placeholder');
+  assert.equal(blankInn.namesConfirmed, true);
+  assert.equal(app.getState().soNamesPopup, false);
 
+  app.startSuperOver();
   app.confirmSONames(' Striker ', ' Non ', ' Bowl ');
   var inn = app.curSOInnings();
   assert.equal(inn.strikerName, 'Striker');

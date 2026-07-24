@@ -19,16 +19,12 @@ function confirmOverSummary() {
   advancePopupQueue();
 }
 
-// name replaces the source's document.getElementById('popBatsman').value read.
+// name replaces the source's document.getElementById('popBatsman').value
+// read. A blank field falls back to the same 'Batsman N' placeholder shown
+// in the input, rather than blocking with a required-field error.
 function confirmBatsmanPopup(name) {
-  const state = getState();
   const inn = curInnings();
-  const val = (name || '').trim();
-  if (val === '') {
-    state.playerPopupError = "Please enter the new batsman's name.";
-    commit();
-    return;
-  }
+  const val = (name || '').trim() || 'Batsman ' + inn.nextBatNum;
   const newBat = { name: val, runs: 0, balls: 0, fours: 0, sixes: 0, out: false, howOut: '' };
   inn.nextBatNum += 1;
   inn.batsmen.push(newBat);
@@ -55,17 +51,16 @@ function findOrCreateBowler(inn, name) {
 }
 
 // Only rule enforced: can't bowl the over immediately after your own,
-// case-insensitive/trimmed.
+// case-insensitive/trimmed. A blank field falls back to a numbered
+// 'Bowler N' placeholder (matching the input's placeholder text) rather
+// than blocking with a required-field error -- numbered so consecutive
+// blank submissions don't all collapse into one findOrCreateBowler() entry
+// and corrupt separate bowlers' figures.
 function setNextBowler(rawName) {
   const state = getState();
   const inn = curInnings();
-  const name = (rawName || '').trim();
+  const name = (rawName || '').trim() || 'Bowler ' + (inn.bowlers.length + 1);
   const prevName = currentBowler(inn).name.trim().toLowerCase();
-  if (name === '') {
-    state.playerPopupError = 'Please enter or pick a bowler.';
-    commit();
-    return;
-  }
   if (name.toLowerCase() === prevName) {
     state.playerPopupError = "A bowler can't bowl two overs in a row. Pick a different bowler.";
     commit();

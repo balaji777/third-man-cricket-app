@@ -70,17 +70,15 @@ function acceptTieAsResult() {
 
 // strikerName/nonStrikerName/bowlerName replace the source's
 // document.getElementById(...).value reads, same as confirmOpeners.
+// A blank field falls back to the placeholder shown in that field
+// ('Striker name'/'Non-striker name'/'Bowler name') rather than blocking
+// with a required-field error, matching confirmOpeners' behavior.
 function confirmSONames(strikerName, nonStrikerName, bowlerName) {
   const state = getState();
   const inn = curSOInnings();
-  const s = (strikerName || '').trim();
-  const ns = (nonStrikerName || '').trim();
-  const bw = (bowlerName || '').trim();
-  if (s === '' || ns === '' || bw === '') {
-    state.playerPopupError = 'Please fill in all three names.';
-    commit();
-    return;
-  }
+  const s = (strikerName || '').trim() || 'Striker name';
+  const ns = (nonStrikerName || '').trim() || 'Non-striker name';
+  const bw = (bowlerName || '').trim() || 'Bowler name';
   inn.strikerName = s;
   inn.nonStrikerName = ns;
   inn.bowlerName = bw;

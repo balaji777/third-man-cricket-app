@@ -36,7 +36,7 @@ export default function OpenersPopup() {
       <TextInput
         value={striker}
         onChangeText={setStriker}
-        placeholder="Batsman name"
+        placeholder="Batsman 1"
         placeholderTextColor={colors.chalkDim}
         style={[styles.input, { color: colors.floodlight, borderColor: colors.line }]}
       />
@@ -44,7 +44,7 @@ export default function OpenersPopup() {
       <TextInput
         value={nonStriker}
         onChangeText={setNonStriker}
-        placeholder="Batsman name"
+        placeholder="Batsman 2"
         placeholderTextColor={colors.chalkDim}
         style={[styles.input, { color: colors.floodlight, borderColor: colors.line }]}
       />
@@ -52,7 +52,7 @@ export default function OpenersPopup() {
       <TextInput
         value={bowler}
         onChangeText={setBowler}
-        placeholder="Bowler name"
+        placeholder="Bowler 1"
         placeholderTextColor={colors.chalkDim}
         style={[styles.input, { color: colors.floodlight, borderColor: colors.line }]}
       />

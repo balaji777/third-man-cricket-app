@@ -40,7 +40,7 @@ function BatsmanPopup() {
       <TextInput
         value={name}
         onChangeText={setName}
-        placeholder="Batsman name"
+        placeholder={'Batsman ' + inn.nextBatNum}
         placeholderTextColor={colors.chalkDim}
         style={[styles.input, { color: colors.floodlight, borderColor: colors.line }]}
       />
@@ -105,7 +105,7 @@ function BowlerPopup() {
       <TextInput
         value={name}
         onChangeText={setName}
-        placeholder="Bowler name"
+        placeholder={'Bowler ' + (inn.bowlers.length + 1)}
         placeholderTextColor={colors.chalkDim}
         style={[styles.input, { color: colors.floodlight, borderColor: colors.line }]}
       />

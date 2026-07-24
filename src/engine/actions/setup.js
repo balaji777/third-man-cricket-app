@@ -46,21 +46,19 @@ function openOpenersPopup() {
 
 // strikerName/nonStrikerName/bowlerName replace the source's
 // document.getElementById(...).value reads -- the RN openers popup passes
-// controlled TextInput values in directly.
+// controlled TextInput values in directly. A blank field falls back to the
+// placeholder shown in that field (freshInnings() already seeds
+// batsmen[0]/[1]/bowlers[0] with those exact names), rather than blocking
+// the user with a required-field error.
 function confirmOpeners(strikerName, nonStrikerName, bowlerName) {
   const state = getState();
   const inn = curInnings();
   const s = (strikerName || '').trim();
   const ns = (nonStrikerName || '').trim();
   const bw = (bowlerName || '').trim();
-  if (s === '' || ns === '' || bw === '') {
-    state.playerPopupError = 'Please fill in all three names.';
-    commit();
-    return;
-  }
-  inn.batsmen[0].name = s;
-  inn.batsmen[1].name = ns;
-  inn.bowlers[0].name = bw;
+  if (s) inn.batsmen[0].name = s;
+  if (ns) inn.batsmen[1].name = ns;
+  if (bw) inn.bowlers[0].name = bw;
   inn.startTime = Date.now();
   state.playerPopup = null;
   state.playerPopupError = null;
