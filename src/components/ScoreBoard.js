@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
 import { oversStr, rate, currentBowler, inPowerplay } from '../engine/helpers';
@@ -12,6 +12,24 @@ import { ballStyle, ballTextColor } from './ballDisplay';
 // current-over ball ticker.
 export default function ScoreBoard({ state, inn }) {
   const { colors } = useTheme();
+  const pulse = useRef(new Animated.Value(1)).current;
+  const lastScoreKey = useRef(inn.runs + '/' + inn.wickets);
+
+  // Pulses the score whenever runs or wickets change (a run, a wicket, or an
+  // undo) -- skipped on the innings' first render so switching to a fresh
+  // innings doesn't pulse from 0/0.
+  useEffect(() => {
+    const key = inn.runs + '/' + inn.wickets;
+    if (lastScoreKey.current === key) return;
+    lastScoreKey.current = key;
+    pulse.setValue(1.16);
+    Animated.spring(pulse, {
+      toValue: 1,
+      speed: 14,
+      bounciness: 10,
+      useNativeDriver: true,
+    }).start();
+  }, [inn.runs, inn.wickets, pulse]);
 
   let target = null;
   if (state.inningsNum === 2 && state.target !== null) {
@@ -31,10 +49,12 @@ export default function ScoreBoard({ state, inn }) {
   return (
     <Card style={styles.card}>
       <Text style={[styles.team, { color: colors.chalk }]}>{inn.battingName} batting</Text>
-      <Text style={[styles.score, { color: colors.amber }]}>
+      <Animated.Text
+        style={[styles.score, { color: colors.amber, transform: [{ scale: pulse }] }]}
+      >
         {inn.runs}
         <Text style={styles.wickets}>/{inn.wickets}</Text>
-      </Text>
+      </Animated.Text>
       <View style={styles.metaRow}>
         <Text style={[styles.meta, { color: colors.chalk }]}>
           OV {oversStr(inn.legalBalls)} / {state.overs}
@@ -82,14 +102,34 @@ export default function ScoreBoard({ state, inn }) {
             New over — {currentBowler(inn).name} to bowl
           </Text>
         ) : (
-          inn.thisOver.map((b, i) => (
-            <View key={i} style={[styles.ball, ballStyle(b, colors)]}>
-              <Text style={[styles.ballText, { color: ballTextColor(b, colors) }]}>{b}</Text>
-            </View>
-          ))
+          inn.thisOver.map((b, i) => <BallChip key={i} b={b} colors={colors} />)
         )}
       </View>
     </Card>
+  );
+}
+
+// Pops in once when it first mounts. Keyed by index in the parent, so only
+// the newly-appended ball at the end of the over ever mounts fresh -- prior
+// balls keep their identity and don't replay the animation on every commit.
+function BallChip({ b, colors }) {
+  const pop = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(pop, {
+      toValue: 1,
+      speed: 18,
+      bounciness: 12,
+      useNativeDriver: true,
+    }).start();
+  }, [pop]);
+
+  return (
+    <Animated.View
+      style={[styles.ball, ballStyle(b, colors), { opacity: pop, transform: [{ scale: pop }] }]}
+    >
+      <Text style={[styles.ballText, { color: ballTextColor(b, colors) }]}>{b}</Text>
+    </Animated.View>
   );
 }
 

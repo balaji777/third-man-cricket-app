@@ -1,12 +1,14 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
+import usePressScale from './usePressScale';
 
 // variant: 'amber' (primary/CTA, also used for run buttons) | 'red' (danger/wicket/six)
 //        | 'ghost' (dashed outline, used for extras) | 'panel' (neutral secondary)
 export default function Button({ label, onPress, variant = 'amber', disabled = false, style }) {
   const { colors } = useTheme();
+  const { scale, onPressIn, onPressOut } = usePressScale();
 
   const variantStyle = {
     amber: { backgroundColor: colors.amber, borderColor: colors.amber },
@@ -23,18 +25,18 @@ export default function Button({ label, onPress, variant = 'amber', disabled = f
   }[variant];
 
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.base,
-        variantStyle,
-        disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
-        style,
-      ]}
-    >
-      <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+    <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={disabled}>
+      <Animated.View
+        style={[
+          styles.base,
+          variantStyle,
+          disabled && styles.disabled,
+          style,
+          { transform: [{ scale }] },
+        ]}
+      >
+        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -55,8 +57,5 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.4,
-  },
-  pressed: {
-    opacity: 0.75,
   },
 });

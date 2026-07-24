@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { fontFamily } from '../theme/typography';
 import Button from './Button';
 import ModalShell from './ModalShell';
+import usePressScale from './usePressScale';
 
 // Persistent chrome shown on every screen except setup (per the source's
 // topbar()): brand wordmark, reset icon (+ confirm modal), theme toggle,
@@ -52,12 +53,13 @@ export default function Topbar({ showReset = true, showSignOut = false, onReset,
 
 function IconButton({ label, onPress }) {
   const { colors } = useTheme();
+  const { scale, onPressIn, onPressOut } = usePressScale();
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-    >
-      <Text style={[styles.iconLabel, { color: colors.chalk }]}>{label}</Text>
+    <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
+      <Animated.View style={[styles.iconBtn, { transform: [{ scale }] }]}>
+        <Text style={[styles.iconLabel, { color: colors.chalk }]}>{label}</Text>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -89,9 +91,6 @@ const styles = StyleSheet.create({
   },
   iconLabel: {
     fontSize: 18,
-  },
-  pressed: {
-    opacity: 0.6,
   },
   confirmRow: {
     flexDirection: 'row',
