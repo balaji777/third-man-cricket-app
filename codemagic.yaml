@@ -22,9 +22,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        # Active development branch -- repoint this at main once the RN port
-        # is merged there.
-        - pattern: Third-man
+        - pattern: main
           include: true
     scripts:
       - name: Install npm dependencies
